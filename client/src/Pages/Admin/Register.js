@@ -184,9 +184,9 @@ const Register = () => {
   return (
     <div>
       <AdminNavbar />
-      <div className="mt-32 max-w-3xl mx-auto p-6">
+      <div className="mt-24 max-w-full sm:max-w-3xl mx-auto p-2 sm:p-6">
         {/* Tab Navigation */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 bg-gray-100 p-1 rounded-lg mb-6">
           <button
             onClick={() => setActiveTab('register')}
             className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
@@ -211,9 +211,9 @@ const Register = () => {
 
         {/* Register User Form */}
         {activeTab === 'register' && (
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">Register New User</h2>
-            <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8 max-w-full sm:max-w-xl mx-auto">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-blue-700">Register New User</h2>
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input
@@ -221,7 +221,7 @@ const Register = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm sm:text-base"
                   placeholder="Enter full name"
                   required
                 />
@@ -233,12 +233,12 @@ const Register = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm sm:text-base"
                   placeholder="Enter email address"
                   required
                 />
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
                   <label className="block text-sm font-medium mb-1">Password</label>
                   <div className="relative">
@@ -247,7 +247,7 @@ const Register = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none pr-10"
+                      className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none pr-10 text-sm sm:text-base"
                       placeholder="Enter password"
                       required
                     />
@@ -269,7 +269,7 @@ const Register = () => {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none pr-10"
+                      className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none pr-10 text-sm sm:text-base"
                       placeholder="Confirm password"
                       required
                     />
@@ -284,11 +284,11 @@ const Register = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   type="button"
                   onClick={generatePassword}
-                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm w-full sm:w-auto"
                 >
                   <FaRandom /> Generate Password
                 </button>
@@ -296,7 +296,7 @@ const Register = () => {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm"
+                  className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm w-full sm:w-auto"
                   required
                 >
                   <option value="" disabled>Select role...</option>
@@ -317,8 +317,8 @@ const Register = () => {
 
         {/* All Users List */}
         {activeTab === 'users' && (
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-blue-700 flex items-center gap-2"><FaUsers /> All Users</h2>
+          <div className="bg-white rounded-2xl shadow-2xl p-2 sm:p-8 max-w-full sm:max-w-3xl mx-auto overflow-x-auto">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-blue-700 flex items-center gap-2"><FaUsers /> All Users</h2>
             {loadingUsers ? (
               <div className="text-center py-8 text-gray-500">Loading users...</div>
             ) : usersError ? (
@@ -326,30 +326,30 @@ const Register = () => {
             ) : users.length === 0 ? (
               <div className="text-center py-8 text-gray-400">No users found.</div>
             ) : (
-              <table className="w-full border-separate border-spacing-0 rounded-2xl overflow-hidden shadow bg-white">
+              <table className="w-full min-w-[600px] border-separate border-spacing-0 rounded-2xl overflow-hidden shadow bg-white text-xs sm:text-base">
                 <thead className="bg-gradient-to-r from-blue-100 to-blue-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-3 py-2 text-left text-base font-semibold text-blue-900 rounded-tl-2xl">#</th>
-                    <th className="px-3 py-2 text-left text-base font-semibold text-blue-900">Name</th>
-                    <th className="px-3 py-2 text-center text-base font-semibold text-blue-900">Email</th>
-                    <th className="px-3 py-2 text-center text-base font-semibold text-blue-900">Role</th>
-                    <th className="px-3 py-2 text-center text-base font-semibold text-blue-900 rounded-tr-2xl">Action</th>
+                    <th className="px-2 sm:px-3 py-2 text-left font-semibold text-blue-900 rounded-tl-2xl">#</th>
+                    <th className="px-2 sm:px-3 py-2 text-left font-semibold text-blue-900">Name</th>
+                    <th className="px-2 sm:px-3 py-2 text-center font-semibold text-blue-900">Email</th>
+                    <th className="px-2 sm:px-3 py-2 text-center font-semibold text-blue-900">Role</th>
+                    <th className="px-2 sm:px-3 py-2 text-center font-semibold text-blue-900 rounded-tr-2xl">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((user, idx) => (
                     <tr key={user.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                      <td className="px-3 py-2 align-middle text-gray-700 font-semibold">{idx + 1}</td>
-                      <td className="px-3 py-2 text-left font-medium text-gray-900">{user.name}</td>
-                      <td className="px-3 py-2 text-left text-gray-700">{user.email}</td>
-                      <td className="px-3 py-2 align-middle">
+                      <td className="px-2 sm:px-3 py-2 align-middle text-gray-700 font-semibold">{idx + 1}</td>
+                      <td className="px-2 sm:px-3 py-2 text-left font-medium text-gray-900">{user.name}</td>
+                      <td className="px-2 sm:px-3 py-2 text-left text-gray-700">{user.email}</td>
+                      <td className="px-2 sm:px-3 py-2 align-middle">
                         {user.role === 'admin' ? (
                           <span className="inline-block px-2 py-0.5 text-xs font-bold bg-yellow-200 text-yellow-900 rounded-full border border-yellow-300">Admin</span>
                         ) : (
                           <span className="inline-block px-2 py-0.5 text-xs font-bold bg-blue-200 text-blue-900 rounded-full border border-blue-300">User</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center align-middle">
+                      <td className="px-2 sm:px-3 py-2 text-center align-middle">
                         <button
                           onClick={() => handleDeleteUser(user.id, user.name)}
                           className="text-white bg-red-500 hover:bg-red-700 p-2 rounded-full transition"

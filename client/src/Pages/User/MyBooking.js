@@ -160,10 +160,10 @@ const MyBooking = () => {
   return (
     <div>
       <Navbar />
-      <div className="p-4 sm:p-6 md:p-10 bg-gray-50 min-h-screen mt-32">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">My Bookings</h2>
-          <div className="text-sm text-gray-500">
+      <div className="p-4 sm:p-6 md:p-10 bg-gray-50 min-h-screen mt-28 sm:mt-32">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-0">
+          <h2 className="text-xl sm:text-2xl font-bold">My Bookings</h2>
+          <div className="text-xs sm:text-sm text-gray-500">
             Last updated: {dayjs(lastUpdate).format('HH:mm:ss')}
           </div>
         </div>
@@ -201,30 +201,28 @@ const MyBooking = () => {
 };
 
 const BookingCard = ({ booking }) => (
-  <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-    <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-3">
-      <div>
-        <h4 className="text-base font-semibold">{booking.title}</h4>
-        <div className="flex items-center text-sm text-gray-600 mt-2">
-          <MapPin className="w-4 h-4 mr-2" />
-          <div className="flex items-center">
-            <span className="font-medium text-blue-600">{booking.roomName}</span>
-          </div>
+  <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-200">
+    <div className="flex flex-row justify-between items-center mb-2 sm:mb-3 gap-2">
+      <div className="min-w-0">
+        <h4 className="text-base sm:text-lg font-semibold truncate">{booking.title}</h4>
+        <div className="flex items-center text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">
+          <MapPin className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="font-medium text-blue-600 truncate">{booking.roomName}</span>
         </div>
-        <div className="flex items-center text-sm text-gray-600 mt-2">
+        <div className="flex items-center text-xs sm:text-sm text-gray-600 mt-1">
           <span>{booking.date}</span>
         </div>
-        <div className="flex items-center text-sm text-gray-600 mt-2">
-          <Clock className="w-4 h-4 mr-2" />
+        <div className="flex items-center text-xs sm:text-sm text-gray-600 mt-1">
+          <Clock className="w-4 h-4 mr-1 sm:mr-2" />
           <span>{booking.time}</span>
         </div>
       </div>
-      <div className="flex flex-col items-end mt-3 sm:mt-0">
-        <span className={`${getStatusColor(booking.status)} text-xs font-medium px-3 py-1 rounded-full capitalize`}>
+      <div className="flex flex-col items-end gap-1">
+        <span className={`${getStatusColor(booking.status)} text-xs font-medium px-2 sm:px-3 py-1 rounded-full capitalize whitespace-nowrap`}>
           {booking.status}
         </span>
         {booking.updatedAt && (
-          <span className="text-xs text-gray-500 mt-2">
+          <span className="text-xs text-gray-500">
             Updated: {dayjs(booking.updatedAt).format('HH:mm:ss')}
           </span>
         )}
@@ -232,23 +230,21 @@ const BookingCard = ({ booking }) => (
     </div>
 
     {booking.notes && (
-      <div className="bg-gray-50 text-sm text-gray-700 p-3 rounded-md">
+      <div className="bg-gray-50 text-xs sm:text-sm text-gray-700 p-2 sm:p-3 rounded-md">
         <strong>Meeting Purpose:</strong> {booking.notes}
       </div>
     )}
     
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mt-4">
-      <div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm mt-3 sm:mt-4">
+      <div className="space-y-1">
         <p><strong>Booked By:</strong> {booking.bookedBy}</p>
         <p><strong>Contact:</strong> {booking.contactNumber}</p>
-        <p><strong>Email:</strong> {booking.email}</p>
+        <p className="truncate"><strong>Email:</strong> {booking.email}</p>
       </div>
-      <div>
+      <div className="space-y-1">
         {/* Always show category/team section */}
-        <div className="space-y-1">
-          <p><strong>Category:</strong> {booking.team}</p>
-          <p><strong>Team:</strong> {booking.subTeam || '—'}</p>
-        </div>
+        <p><strong>Category:</strong> {booking.team}</p>
+        <p><strong>Team:</strong> {booking.subTeam || '—'}</p>
       </div>
     </div>
   </div>

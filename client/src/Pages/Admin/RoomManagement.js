@@ -261,13 +261,13 @@ const RoomManagement = () => {
         pauseOnHover
         theme="light"
       />
-      <div className="mt-32 p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold font-dmsans">Room Management</h1>
+      <div className="mt-24 p-2 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold font-dmsans">Room Management</h1>
           <button
             onClick={handleAdd}
             disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
           >
             + Add Room
           </button>
@@ -290,39 +290,36 @@ const RoomManagement = () => {
             rooms.map((room) => (
               <div
                 key={room.id}
-                className="bg-white rounded-lg shadow-sm p-4 flex gap-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-6 hover:shadow-md transition-shadow"
               >
                 <img
                   src={getImageSource(room)}
                   alt={room.name}
-                  className="w-60 h-40 object-cover rounded-lg"
+                  className="w-full sm:w-60 h-40 object-cover rounded-lg mb-3 sm:mb-0"
                   onError={handleImageError}
                 />
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{room.name}</h2>
-                  
-                  <div className="grid grid-cols-3 gap-8 mb-3">
+                <div className="flex-1 flex flex-col justify-between">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1 sm:mb-2 truncate">{room.name}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-8 mb-2 sm:mb-3">
                     <div>
-                      <div className="text-sm text-gray-500 font-medium">Location</div>
-                      <div className="text-gray-900">{room.location}, {room.floor}</div>
+                      <div className="text-xs sm:text-sm text-gray-500 font-medium">Location</div>
+                      <div className="text-gray-900 text-sm sm:text-base">{room.location}, {room.floor}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500 font-medium">Capacity</div>
-                      <div className="text-gray-900">{room.capacity} people</div>
+                      <div className="text-xs sm:text-sm text-gray-500 font-medium">Capacity</div>
+                      <div className="text-gray-900 text-sm sm:text-base">{room.capacity} people</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500 font-medium">Equipment</div>
-                      <div className="text-gray-900">{room.equipment}</div>
+                      <div className="text-xs sm:text-sm text-gray-500 font-medium">Equipment</div>
+                      <div className="text-gray-900 text-sm sm:text-base break-words">{room.equipment}</div>
                     </div>
                   </div>
-                  
-                  <p className="text-gray-600 text-sm mb-4">{room.description}</p>
-                  
-                  <div className="flex justify-end gap-2">
+                  <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-4 line-clamp-2 sm:line-clamp-3">{room.description}</p>
+                  <div className="flex flex-col sm:flex-row justify-end gap-2">
                     <button
                       onClick={() => handleEdit(room)}
                       disabled={loading}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                      className="inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 w-full sm:w-auto"
                     >
                       <Pencil size={16} className="mr-1.5" />
                       Edit
@@ -330,7 +327,7 @@ const RoomManagement = () => {
                     <button
                       onClick={() => handleDelete(room.id)}
                       disabled={loading}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 border border-transparent rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      className="inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium text-white bg-red-600 border border-transparent rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 w-full sm:w-auto"
                     >
                       <Trash2 size={16} className="mr-1.5" />
                       Delete
@@ -345,12 +342,12 @@ const RoomManagement = () => {
         {/* Modal Form */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg w-[90%] max-w-xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-bold mb-4">
+            <div className="bg-white p-3 sm:p-6 rounded-lg w-[98%] sm:w-[90%] max-w-xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
                 {formData.id ? "Edit Room" : "Add New Room"}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">
                       Room Name *

@@ -286,14 +286,14 @@ const BookingManagement = () => {
   };
 
   const BookingCard = ({ booking }) => (
-    <div className={`p-3 rounded-lg border-l-4 ${
+    <div className={`p-2 sm:p-3 rounded-lg border-l-4 ${
       booking.status.toLowerCase() === 'confirmed' ? 'border-green-500 bg-green-50' :
       booking.status.toLowerCase() === 'pending' ? 'border-yellow-500 bg-yellow-50' :
       'border-red-500 bg-red-50'
-    } mb-2`}>
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h4 className="font-medium text-gray-900 text-sm">{booking.title}</h4>
+    } mb-2`}> 
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">{booking.title}</h4>
           <div className="flex items-center text-xs text-gray-600 mt-1">
             <Clock className="w-3 h-3 mr-1" />
             {booking.time}
@@ -306,7 +306,6 @@ const BookingManagement = () => {
             <Phone className="w-3 h-3 mr-1" />
             {booking.contactNumber}
           </div>
-          {/* Category - Team below contact number */}
           <div className="flex items-center text-xs text-gray-600 mt-1">
             <Target className="w-3 h-3 mr-1" />
             <span>
@@ -315,19 +314,19 @@ const BookingManagement = () => {
             </span>
           </div>
         </div>
-        <div className="flex flex-col space-y-1">
+        <div className="flex flex-row sm:flex-col gap-1 sm:gap-2 items-end sm:items-start w-full sm:w-auto">
           {booking.status.toLowerCase() === 'pending' && (
             <>
               <button
                 onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
-                className="flex items-center text-green-600 hover:text-green-900 text-xs"
+                className="flex items-center text-green-600 hover:text-green-900 text-xs w-full sm:w-auto"
               >
                 <Check className="w-3 h-3 mr-1" />
                 Confirm
               </button>
               <button
                 onClick={() => handleUpdateStatus(booking.id, 'rejected')}
-                className="flex items-center text-red-600 hover:text-red-900 text-xs"
+                className="flex items-center text-red-600 hover:text-red-900 text-xs w-full sm:w-auto"
               >
                 <X className="w-3 h-3 mr-1" />
                 Reject
@@ -337,7 +336,7 @@ const BookingManagement = () => {
           {booking.status.toLowerCase() === 'confirmed' && (
             <button
               onClick={() => handleUpdateStatus(booking.id, 'rejected')}
-              className="flex items-center text-red-600 hover:text-red-900 text-xs"
+              className="flex items-center text-red-600 hover:text-red-900 text-xs w-full sm:w-auto"
             >
               <X className="w-3 h-3 mr-1" />
               Cancel
@@ -420,27 +419,50 @@ const BookingManagement = () => {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
     const weekBookings = getBookingsForWeek(startOfWeek);
-    
+    const hours = Array.from({ length: 13 }, (_, i) => 8 + i); // 8am to 8pm
+
+    // Helper to get bookings for a day and hour
+    const getBookingsForDayHour = (date, hour) => {
+      return (weekBookings.find(d => d.date.toDateString() === date.toDateString())?.bookings || []).filter(b => {
+        const [h] = b.rawStartTime ? b.rawStartTime.split(":") : [null];
+        return parseInt(h, 10) === hour;
+      });
+    };
+
     return (
-      <div className="bg-white rounded-lg shadow">
-        <div className="grid grid-cols-7 gap-0 border-b">
-          {weekBookings.map(({ date, bookings }, index) => {
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <div className="min-w-[900px] grid grid-cols-8 border-b">
+          <div className="bg-gray-100 p-2 border-r"></div>
+          {weekBookings.map(({ date }, idx) => {
             const isToday = date.toDateString() === new Date().toDateString();
             return (
-              <div key={index} className="p-3 border-r last:border-r-0">
-                <div className={`text-center ${isToday ? 'text-blue-600 font-semibold' : ''}`}>
-                  <div className="text-sm font-medium">
-                    {date.toLocaleDateString('en-US', { weekday: 'short' })}
+              <div key={idx} className={`text-center p-2 border-r last:border-r-0 font-medium ${isToday ? 'text-blue-600 bg-blue-50' : 'text-gray-700 bg-gray-100'}`}>{date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</div>
+            );
+          })}
+        </div>
+        <div className="min-w-[900px] grid grid-cols-8">
+          {/* Time slots */}
+          <div className="flex flex-col border-r">
+            {hours.map(hour => (
+              <div key={hour} className="h-16 border-b text-xs text-gray-400 flex items-start justify-end pr-2 pt-1">
+                {hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
+              </div>
+            ))}
+          </div>
+          {/* Day columns */}
+          {weekBookings.map(({ date }, dayIdx) => {
+            const isToday = date.toDateString() === new Date().toDateString();
+            return (
+              <div key={dayIdx} className={`flex flex-col border-r last:border-r-0 ${isToday ? 'bg-blue-50' : ''}`}> 
+                {hours.map(hour => (
+                  <div key={hour} className="h-16 border-b relative">
+                    {getBookingsForDayHour(date, hour).map(booking => (
+                      <div key={booking.id} className="absolute left-1 right-1 top-1 bottom-1 bg-blue-500 text-white text-xs rounded shadow flex items-center px-2 overflow-hidden cursor-pointer" title={booking.title} onClick={() => setSelectedBooking(booking)}>
+                        {booking.title}
+                      </div>
+                    ))}
                   </div>
-                  <div className={`text-lg ${isToday ? 'bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto mt-1' : ''}`}>
-                    {date.getDate()}
-                  </div>
-                </div>
-                <div className="mt-3 space-y-1">
-                  {bookings.map(booking => (
-                    <BookingCard key={booking.id} booking={booking} />
-                  ))}
-                </div>
+                ))}
               </div>
             );
           })}
@@ -561,13 +583,12 @@ const BookingManagement = () => {
         />
       )}
       
-      <div className="mt-32 p-8">{/* Added mt-32 to account for your Navbar */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
-          <h1 className="text-3xl font-bold text-gray-900">Booking Management</h1>
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+      <div className="mt-24 p-2 sm:p-4 md:p-8">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:justify-between lg:items-center mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Booking Management</h1>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
             <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -576,14 +597,13 @@ const BookingManagement = () => {
               <option value="confirmed">Confirmed</option>
               <option value="rejected">Rejected</option>
             </select>
-            
-            <div className="flex items-center space-x-2">
-              <div className="flex bg-white border border-gray-300 rounded-lg p-1">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex bg-white border border-gray-300 rounded-lg p-1 w-full sm:w-auto">
                 {['month', 'week', 'day', 'agenda'].map(view => (
                   <button
                     key={view}
                     onClick={() => setCurrentView(view)}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto ${
                       currentView === view
                         ? 'bg-blue-500 text-white'
                         : 'text-gray-700 hover:bg-gray-100'
@@ -631,7 +651,7 @@ const BookingManagement = () => {
       </div>
       {selectedBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg max-w-full w-[95vw] p-4 sm:max-w-2xl sm:p-10 relative overflow-y-auto max-h-[90vh]">
+          <div className="bg-white rounded-lg shadow-lg w-[99vw] sm:w-[95vw] max-w-full sm:max-w-2xl p-2 sm:p-6 relative overflow-y-auto max-h-[90vh]">
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl font-bold"
               onClick={closeBookingModal}

@@ -367,12 +367,12 @@ const BrowseRoom = () => {
   return (
     <div>
       <Navbar />
-      <div className="mt-32 p-4">
-        <h1 className="text-3xl font-bold font-dmsans">Room Management</h1>
+      <div className="mt-32 p-2 sm:p-4">
+        <h1 className="text-2xl sm:text-3xl font-bold font-dmsans mb-2 sm:mb-4">Room Management</h1>
         
         {isBookingOpen && selectedRoom && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={handleBackdropClick}>
-            <div className="bg-white border shadow-lg rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={handleBackdropClick}>
+            <div className="bg-white border shadow-lg rounded-xl p-2 sm:p-6 w-full max-w-lg sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
                   Book {selectedRoom.name}
@@ -604,17 +604,17 @@ const BrowseRoom = () => {
           </div>
         )}
 
-        <div className="bg-white shadow rounded-lg p-4 w-full max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
+        <div className="bg-white shadow rounded-lg p-2 sm:p-4 w-full max-w-full sm:max-w-6xl mx-auto">
+          <div className="flex flex-col gap-2 sm:gap-4 md:flex-row md:items-center">
             <input
               type="text"
               placeholder="Search rooms by name or location..."
-              className="w-full md:w-[900px] px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300 text-sm sm:text-base"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <select
-              className="w-full md:w-48 px-4 py-2 border border-gray-300 rounded focus:outline-none"
+              className="w-full md:w-48 px-3 sm:px-4 py-2 border border-gray-300 rounded focus:outline-none text-sm sm:text-base"
               value={capacityFilter}
               onChange={(e) => setCapacityFilter(e.target.value)}
             >
@@ -626,8 +626,8 @@ const BrowseRoom = () => {
             </select>
           </div>
 
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 text-left mb-2">
+          <div className="mt-3 sm:mt-4">
+            <p className="text-xs sm:text-sm font-medium text-gray-700 text-left mb-1 sm:mb-2">
               Equipment:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -635,7 +635,7 @@ const BrowseRoom = () => {
                 (item) => (
                   <button
                     key={item}
-                    className={`px-3 py-1 text-sm rounded-full transition ${
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full transition ${
                       equipmentFilters.includes(item)
                         ? "bg-blue-500 text-white"
                         : "bg-gray-100 text-blue-900 hover:bg-blue-100"
@@ -650,42 +650,42 @@ const BrowseRoom = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 lg:ml-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 sm:mt-8 lg:ml-0">
           {filteredRooms.map((room) => (
             <div
               key={room.id}
-              className="max-w-sm rounded-xl overflow-hidden shadow-lg bg-white flex flex-col h-full"
+              className="w-full max-w-full sm:max-w-sm rounded-xl overflow-hidden shadow-lg bg-white flex flex-col h-full"
             >
               <img
-                className="w-full h-48 object-cover"
+                className="w-full h-40 sm:h-48 object-cover"
                 src={room.image || img1}
                 alt={room.name}
               />
-              <div className="p-4 flex flex-col flex-1 justify-between min-h-[320px]">
+              <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between min-h-[260px] sm:min-h-[320px]">
                 <div>
-                  <h2 className="text-xl font-semibold mb-1">{room.name}</h2>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-1 truncate">{room.name}</h2>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-4 line-clamp-2 sm:line-clamp-3">
                     {room.description}
                   </p>
 
-                  <div className="flex items-center text-sm text-gray-700 mb-1">
+                  <div className="flex items-center text-xs sm:text-sm text-gray-700 mb-1">
                     <span className="mr-2">
                       <FaPeopleGroup />
                     </span>
                     Capacity: {room.capacity} people
                   </div>
-                  <div className="flex items-center text-sm text-gray-700 mb-4">
+                  <div className="flex items-center text-xs sm:text-sm text-gray-700 mb-2 sm:mb-4">
                     <span className="mr-2">
                       <FaLocationDot />
                     </span>
                     {room.location}, {room.floor}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-4">
                     {room.equipment.split(", ").map((item) => (
                       <span
                         key={item}
-                        className="bg-gray-100 text-sm px-3 py-1 rounded-full"
+                        className="bg-gray-100 text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-full truncate"
                       >
                         {item}
                       </span>
@@ -693,7 +693,7 @@ const BrowseRoom = () => {
                   </div>
                 </div>
                 <button
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition mt-auto"
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition mt-auto text-sm sm:text-base"
                   onClick={() => {
                     setSelectedRoom(room);
                     setIsBookingOpen(true);
