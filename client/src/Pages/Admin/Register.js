@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FaRandom, FaTrash, FaUsers, FaUserPlus } from 'react-icons/fa';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://13.127.171.141:5000/api';
 
 const Register = () => {
   const [formData, setFormData] = useState({

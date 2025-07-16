@@ -37,7 +37,7 @@ const RoomManagement = () => {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:5000/api/get");
+      const response = await axios.get("http://13.127.171.141:5000/api/get");
       console.log("Fetch response:", response.data); // Debug log
       
       let fetchedRooms = [];
@@ -77,7 +77,7 @@ const RoomManagement = () => {
     if (window.confirm('Are you sure you want to delete this room?')) {
       try {
         setLoading(true);
-        await axios.delete(`http://localhost:5000/api/delete/${id}`);
+        await axios.delete(`http://13.127.171.141:5000/api/delete/${id}`);
         toast.success('Room deleted successfully!', {
           position: "top-right",
           autoClose: 3000,
@@ -166,7 +166,7 @@ const RoomManagement = () => {
         // Update existing room
         console.log("Updating room with ID:", formData.id);
         response = await axios.put(
-          `http://localhost:5000/api/update/${formData.id}`,
+          `http://13.127.171.141:5000/api/update/${formData.id}`,
           dataToSend,
           {
             headers: {
@@ -185,7 +185,7 @@ const RoomManagement = () => {
         // Create new room
         console.log("Creating new room");
         response = await axios.post(
-          "http://localhost:5000/api/create",
+          "http://13.127.171.141:5000/api/create",
           dataToSend,
           {
             headers: {

@@ -44,7 +44,7 @@ const BrowseRoom = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/get");
+        const response = await axios.get("http://13.127.171.141:5000/api/get");
         let fetchedRooms = response.data.rows;
         // Custom room order
         const roomOrder = [
@@ -79,7 +79,7 @@ const BrowseRoom = () => {
     // Fetch teams for dropdowns
     const fetchTeams = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/teams");
+        const response = await axios.get("http://13.127.171.141:5000/api/teams");
         setTeams(response.data);
       } catch (error) {
         setTeams([]);
@@ -90,14 +90,14 @@ const BrowseRoom = () => {
 
   useEffect(() => {
     // Fetch categories on mount
-    axios.get('http://localhost:5000/api/')
+    axios.get('http://13.127.171.141:5000/api/')
       .then(res => {
         setCategories(Array.isArray(res.data) ? res.data : []);
         // Fetch teams for all categories
         const fetchAllTeams = async () => {
           const teamsMap = {};
           await Promise.all((Array.isArray(res.data) ? res.data : []).map(async (cat) => {
-            const tRes = await axios.get(`http://localhost:5000/api/category/${cat.id}`);
+            const tRes = await axios.get(`http://13.127.171.141:5000/api/category/${cat.id}`);
             const tData = tRes.data;
             teamsMap[cat.id] = Array.isArray(tData) ? tData : [];
           }));
@@ -111,7 +111,7 @@ const BrowseRoom = () => {
   // Fetch teams for selected category, but do not show in form
   useEffect(() => {
     if (formData.team_category) {
-      axios.get(`http://localhost:5000/api/category/${formData.team_category}`)
+      axios.get(`http://13.127.171.141:5000/api/category/${formData.team_category}`)
         .then(res => setTeams(Array.isArray(res.data) ? res.data : []))
         .catch(() => setTeams([]));
     } else {
@@ -121,7 +121,7 @@ const BrowseRoom = () => {
 
   useEffect(() => {
     if (formData.team_category) {
-      axios.get(`http://localhost:5000/api/subcategories?category_id=${formData.team_category}`)
+      axios.get(`http://13.127.171.141:5000/api/subcategories?category_id=${formData.team_category}`)
         .then(res => {
           setSubcategories(res.data);
           console.log('Fetched subcategories:', res.data);
@@ -137,7 +137,7 @@ const BrowseRoom = () => {
   // Fetch subcategories when team changes
   useEffect(() => {
     if (formData.team) {
-      axios.get(`http://localhost:5000/api/team/${formData.team}/subcategories`)
+      axios.get(`http://13.127.171.141:5000/api/team/${formData.team}/subcategories`)
         .then(res => setTeamSubcategories(Array.isArray(res.data) ? res.data : []))
         .catch(() => setTeamSubcategories([]));
       setFormData(prev => ({ ...prev, team_sub_category: '' }));
@@ -284,7 +284,7 @@ const BrowseRoom = () => {
         team_sub_category: teamName
       };
 
-      const response = await axios.post("http://localhost:5000/api/create_browseroom", bookingData);
+      const response = await axios.post("http://13.127.171.141:5000/api/create_browseroom", bookingData);
       
       if (response.data) {
         toast.success("Room booked successfully!", {

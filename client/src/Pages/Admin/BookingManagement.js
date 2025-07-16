@@ -65,7 +65,7 @@ const BookingManagement = () => {
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/get_browseroom");
+      const response = await axios.get("http://13.127.171.141:5000/api/get_browseroom");
       if (!response.data || !response.data.rows) {
         throw new Error('Invalid response format');
       }
@@ -148,7 +148,7 @@ const BookingManagement = () => {
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      const response = await axios.put(`http://localhost:5000/api/update_browseroom/${id}`, {
+      const response = await axios.put(`http://13.127.171.141:5000/api/update_browseroom/${id}`, {
         status: newStatus,
         updated_at: new Date().toISOString()
       });

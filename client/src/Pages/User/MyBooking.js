@@ -32,7 +32,7 @@ const MyBooking = () => {
         throw new Error('User not found');
       }
 
-      const response = await axios.get(`http://localhost:5000/api/get_browseroom?email=${user.email}`);
+      const response = await axios.get(`http://13.127.171.141:5000/api/get_browseroom?email=${user.email}`);
 
       if (!response.data || !response.data.rows) {
         throw new Error('Invalid response format');
