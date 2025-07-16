@@ -94,10 +94,11 @@ app.post('/api/register', async (req, res) => {
 });
 
 // Function to start server with fallback port handling
+const HOST = process.env.HOST || '0.0.0.0';
 const startServer = (port) => {
   try {
-    const server = app.listen(port, () => {
-      console.log(`Server is running successfully on port ${port}`);
+    const server = app.listen(port, HOST, () => {
+      console.log(`Server is running successfully on http://${HOST}:${port}`);
       
       // Log email configuration status
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
