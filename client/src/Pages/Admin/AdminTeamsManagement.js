@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, Users, Building, Settings } from 'lucide-react';
 import AdminNavbar from '../../components/AdminNavbar';
 
-const API_BASE = '/api';
+const API_BASE = 'http://13.127.171.141:5000/api';
 
 const AdminTeamsManagement = () => {
   const [categories, setCategories] = useState([]);
