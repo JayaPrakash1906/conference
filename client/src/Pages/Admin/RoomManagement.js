@@ -148,18 +148,20 @@ const RoomManagement = () => {
     try {
       setLoading(true);
       
-      // Prepare data object instead of FormData for JSON API
-      const dataToSend = {
-        name: formData.name.trim(),
-        location: formData.location.trim(),
-        floor: formData.floor.trim(),
-        capacity: parseInt(formData.capacity),
-        equipment: formData.equipment.trim(),
-        description: formData.description.trim(),
-        image: formData.image.trim(),
-      };
+      const form = new FormData();
+      form.append('name', formData.name.trim());
+      form.append('location', formData.location.trim());
+      form.append('floor', formData.floor.trim());
+      form.append('capacity', parseInt(formData.capacity));
+      form.append('equipment', formData.equipment.trim());
+      form.append('description', formData.description.trim());
+      if (formData.image && typeof formData.image !== 'string') {
+        form.append('image', formData.image);
+      } else if (formData.image && typeof formData.image === 'string') {
+        form.append('image', formData.image);
+      }
 
-      console.log("Data to send:", dataToSend); // Debug log
+      console.log("Data to send:", form); // Debug log
 
       let response;
       if (formData.id) {
@@ -167,12 +169,8 @@ const RoomManagement = () => {
         console.log("Updating room with ID:", formData.id);
         response = await axios.put(
           `http://13.127.171.141:5000/api/update/${formData.id}`,
-          dataToSend,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+          form,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
         
         console.log("Update response:", response.data); // Debug log
@@ -186,12 +184,8 @@ const RoomManagement = () => {
         console.log("Creating new room");
         response = await axios.post(
           "http://13.127.171.141:5000/api/create",
-          dataToSend,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+          form,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
         
         console.log("Create response:", response.data); // Debug log
@@ -242,8 +236,13 @@ const RoomManagement = () => {
 
   // Function to get the image source
   const getImageSource = (room) => {
-    // Use database image if available, otherwise use fallback
-    return room.image && room.image.trim() !== "" ? room.image : img1;
+    if (room.image && room.image.trim() !== "") {
+      if (room.image.startsWith("/uploads")) {
+        return `http://13.127.171.141:5000${room.image}`;
+      }
+      return room.image;
+    }
+    return img1;
   };
 
   return (
@@ -261,7 +260,7 @@ const RoomManagement = () => {
         pauseOnHover
         theme="light"
       />
-      <div className="mt-24 p-2 sm:p-6">
+      <div className="mt-36 p-2 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-0">
           <h1 className="text-2xl sm:text-3xl font-bold font-dmsans">Room Management</h1>
           <button
@@ -415,20 +414,36 @@ const RoomManagement = () => {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium mb-1">
-                      Image URL
+                      Room Image
                     </label>
                     <input
-                      type="url"
-                      placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
-                      value={formData.image}
-                      onChange={(e) =>
-                        setFormData({ ...formData, image: e.target.value })
-                      }
+                      type="file"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setFormData({ ...formData, image: file });
+                        }
+                      }}
                       className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       disabled={loading}
                     />
+                    {formData.image && typeof formData.image !== 'string' && (
+                      <img
+                        src={URL.createObjectURL(formData.image)}
+                        alt="Preview"
+                        className="mt-2 w-32 h-20 object-cover rounded"
+                      />
+                    )}
+                    {formData.image && typeof formData.image === 'string' && formData.image !== '' && (
+                      <img
+                        src={formData.image}
+                        alt="Current"
+                        className="mt-2 w-32 h-20 object-cover rounded"
+                      />
+                    )}
                     <small className="text-gray-500">
-                      Leave empty to use default image
+                      Upload a new image to replace the current one
                     </small>
                   </div>
                   <div className="sm:col-span-2">

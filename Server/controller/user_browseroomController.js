@@ -1,4 +1,5 @@
 const {CreateBrowseModel, FetchBrowseModel, UpdateBrowseModel, DeleteBrowseModel, UpdateBrowseStatus}  = require('../model/user_browseroomModel');
+const { sendBookingStatusEmail } = require('../utils/emailService');
 
 
 const CreateBrowse = async (req, res) => {
@@ -86,11 +87,28 @@ const UpdateBrowse = async (req, res) => {
     }
     
     try {
+        // Update the booking status
         const result = await UpdateBrowseStatus(
             id,
             status.toLowerCase(),
             updated_at || new Date().toISOString()
         );
+
+        // Fetch the full booking details for the updated booking
+        const allBookings = await FetchBrowseModel();
+        const booking = allBookings.rows.find(b => String(b.id) === String(id));
+
+        // Send email to user if status is confirmed or rejected and booking details are found
+        if (booking && (status.toLowerCase() === 'confirmed' || status.toLowerCase() === 'rejected')) {
+            try {
+                console.log('About to send booking status email:', booking.email, status.toLowerCase(), booking);
+                await sendBookingStatusEmail(booking.email, status.toLowerCase(), booking);
+            } catch (emailErr) {
+                console.error('Failed to send booking status email:', emailErr);
+            }
+        } else if (!booking) {
+            console.error('Booking details not found for email notification.');
+        }
 
         return res.status(200).json({
             success: true,

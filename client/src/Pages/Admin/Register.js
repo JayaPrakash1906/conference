@@ -184,7 +184,7 @@ const Register = () => {
   return (
     <div>
       <AdminNavbar />
-      <div className="mt-24 max-w-full sm:max-w-3xl mx-auto p-2 sm:p-6">
+      <div className="mt-36 max-w-full sm:max-w-3xl mx-auto p-2 sm:p-6">
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 bg-gray-100 p-1 rounded-lg mb-6">
           <button

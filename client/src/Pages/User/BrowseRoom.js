@@ -172,12 +172,18 @@ const BrowseRoom = () => {
     }
   };
 
-  const generateTimeOptions = () => { 
+  // Generate time options, optionally restricted for certain rooms
+  const generateTimeOptions = (restricted = false) => { 
     const options = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 15) {
+    const minHour = restricted ? 9 : 0;
+    const maxHour = restricted ? 18 : 23;
+    for (let hour = minHour; hour <= maxHour; hour++) {
+      for (let minute of [0, 15, 30, 45]) {
+        // For restricted, skip 18:15, 18:30, 18:45
+        if (restricted && hour === 18 && minute > 0) continue;
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        const displayTime = `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}:${minute.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const displayTime = `${displayHour}:${minute.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
         options.push({ value: timeString, label: displayTime });
       }
     }
@@ -245,6 +251,13 @@ const BrowseRoom = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Mobile number validation (10 digits, only numbers)
+    const mobileRegex = /^\d{10}$/;
+    if (!mobileRegex.test(formData.contact_number)) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
 
     // Validation for past date and time
     const now = dayjs();
@@ -425,26 +438,6 @@ const BrowseRoom = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-left">
-                      Start Time
-                    </label>
-                    <select
-                      name="start_time"
-                      className="w-full border px-3 py-2 rounded-md"
-                      value={formData.start_time}
-                      onChange={handleStartTimeChange}
-                      required
-                    >
-                      <option value="">Select start time</option>
-                      {generateTimeOptions().map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-left">
                       Date
                     </label>
                     <input 
@@ -460,6 +453,29 @@ const BrowseRoom = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-left">
+                      Start Time
+                    </label>
+                    <select
+                      name="start_time"
+                      className="w-full border px-3 py-2 rounded-md"
+                      value={formData.start_time}
+                      onChange={handleStartTimeChange}
+                      required
+                    >
+                      <option value="">Select start time</option>
+                      {(selectedRoom && (selectedRoom.name === 'Meeting Room 1' || selectedRoom.name === 'Meeting Room 2')
+                        ? generateTimeOptions(true)
+                        : generateTimeOptions()
+                      ).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-left">
                       End Time
                     </label>
                     <select
@@ -470,7 +486,10 @@ const BrowseRoom = () => {
                       required
                     >
                       <option value="">Select end time</option>
-                      {generateTimeOptions().map((option) => (
+                      {(selectedRoom && (selectedRoom.name === 'Meeting Room 1' || selectedRoom.name === 'Meeting Room 2')
+                        ? generateTimeOptions(true)
+                        : generateTimeOptions()
+                      ).map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>

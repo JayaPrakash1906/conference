@@ -2,7 +2,12 @@ const {CreateRoomModel, FetchRoomModel, UpdateRoomModel, DeleteRoomModel}  = req
 
 
 const CreateRoom = async(req, res) => {
-    const {name, location, capacity, floor, image, description, equipment} = req.body;
+    let {name, location, capacity, floor, image, description, equipment} = req.body;
+    
+    // If a new image file is uploaded
+    if (req.file) {
+        image = `/uploads/${req.file.filename}`;
+    }
     
     if (!name || !location || !capacity || !floor || !image || !description || !equipment ) {
         return res.status(400).json({status: 'Check all fields'});
@@ -42,7 +47,7 @@ const UpdateRoom = async (req, res) => {
 
         // If a new image file is uploaded
         if (req.file) {
-            image = req.file.path; // or however you're storing the image path
+            image = `/uploads/${req.file.filename}`;
         }
     
         if (!name || !location || !capacity || !floor || !description || !equipment ) {

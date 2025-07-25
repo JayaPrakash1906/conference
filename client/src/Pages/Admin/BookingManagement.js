@@ -43,6 +43,7 @@ const BookingManagement = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [expandedDays, setExpandedDays] = useState(new Set());
   const [categoryMap, setCategoryMap] = useState({});
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -147,6 +148,7 @@ const BookingManagement = () => {
   };
 
   const handleUpdateStatus = async (id, newStatus) => {
+    setStatusUpdatingId(id);
     try {
       const response = await axios.put(`http://13.127.171.141:5000/api/update_browseroom/${id}`, {
         status: newStatus,
@@ -157,10 +159,7 @@ const BookingManagement = () => {
         throw new Error(response.data?.message || 'No response from server');
       }
 
-      // Close the modal immediately
       closeBookingModal();
-      
-      // Update the local state immediately for instant feedback
       setBookings(prevBookings => 
         prevBookings.map(booking => 
           booking.id === id 
@@ -170,21 +169,16 @@ const BookingManagement = () => {
       );
 
       const actionMessages = {
-        rejected: 'Booking cancelled successfully',
-        confirmed: 'Booking confirmed successfully'
+        rejected: 'Booking cancelled and email sent to user.',
+        confirmed: 'Booking confirmed and email sent to user.'
       };
 
-      showNotification(actionMessages[newStatus] || 'Booking status updated successfully');
-
-      // Fetch fresh data in background
+      showNotification(actionMessages[newStatus] || 'Booking status updated and email sent.');
       setTimeout(() => {
         fetchBookings();
       }, 1000);
-
     } catch (error) {
-      console.error("Error updating booking status:", error);
       let errorMessage = "Failed to update booking status. ";
-
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message === 'Network Error') {
@@ -192,12 +186,12 @@ const BookingManagement = () => {
       } else if (!error.response) {
         errorMessage = 'No response from server. Please try again later.';
       }
-
       showNotification(errorMessage);
-
       if (error.response?.status === 500) {
         await fetchBookings();
       }
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
 
@@ -319,27 +313,30 @@ const BookingManagement = () => {
             <>
               <button
                 onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
-                className="flex items-center text-green-600 hover:text-green-900 text-xs w-full sm:w-auto"
+                className="flex items-center text-green-600 hover:text-green-900 text-xs w-full sm:w-auto disabled:opacity-50"
+                disabled={statusUpdatingId === booking.id}
               >
                 <Check className="w-3 h-3 mr-1" />
-                Confirm
+                {statusUpdatingId === booking.id ? 'Confirming...' : 'Confirm'}
               </button>
               <button
                 onClick={() => handleUpdateStatus(booking.id, 'rejected')}
-                className="flex items-center text-red-600 hover:text-red-900 text-xs w-full sm:w-auto"
+                className="flex items-center text-red-600 hover:text-red-900 text-xs w-full sm:w-auto disabled:opacity-50"
+                disabled={statusUpdatingId === booking.id}
               >
                 <X className="w-3 h-3 mr-1" />
-                Reject
+                {statusUpdatingId === booking.id ? 'Rejecting...' : 'Reject'}
               </button>
             </>
           )}
           {booking.status.toLowerCase() === 'confirmed' && (
             <button
               onClick={() => handleUpdateStatus(booking.id, 'rejected')}
-              className="flex items-center text-red-600 hover:text-red-900 text-xs w-full sm:w-auto"
+              className="flex items-center text-red-600 hover:text-red-900 text-xs w-full sm:w-auto disabled:opacity-50"
+              disabled={statusUpdatingId === booking.id}
             >
               <X className="w-3 h-3 mr-1" />
-              Cancel
+              {statusUpdatingId === booking.id ? 'Cancelling...' : 'Cancel'}
             </button>
           )}
         </div>
@@ -419,7 +416,8 @@ const BookingManagement = () => {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
     const weekBookings = getBookingsForWeek(startOfWeek);
-    const hours = Array.from({ length: 13 }, (_, i) => 8 + i); // 8am to 8pm
+    // In renderWeekView, update the hours array:
+    const hours = Array.from({ length: 24 }, (_, i) => i); // 0 (12am) to 23 (11pm)
 
     // Helper to get bookings for a day and hour
     const getBookingsForDayHour = (date, hour) => {
@@ -445,7 +443,7 @@ const BookingManagement = () => {
           <div className="flex flex-col border-r">
             {hours.map(hour => (
               <div key={hour} className="h-16 border-b text-xs text-gray-400 flex items-start justify-end pr-2 pt-1">
-                {hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
+                {hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
               </div>
             ))}
           </div>
@@ -456,8 +454,24 @@ const BookingManagement = () => {
               <div key={dayIdx} className={`flex flex-col border-r last:border-r-0 ${isToday ? 'bg-blue-50' : ''}`}> 
                 {hours.map(hour => (
                   <div key={hour} className="h-16 border-b relative">
-                    {getBookingsForDayHour(date, hour).map(booking => (
-                      <div key={booking.id} className="absolute left-1 right-1 top-1 bottom-1 bg-blue-500 text-white text-xs rounded shadow flex items-center px-2 overflow-hidden cursor-pointer" title={booking.title} onClick={() => setSelectedBooking(booking)}>
+                    {getBookingsForDayHour(date, hour).map((booking, idx, arr) => (
+                      <div
+                        key={booking.id}
+                        className={`absolute left-1 right-1 text-xs rounded shadow flex items-center px-2 overflow-hidden cursor-pointer 
+                          ${booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800' :
+                            booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800' :
+                            'bg-red-200 text-red-800'}
+                        `}
+                        style={{
+                          top: `calc(${idx * (100 / arr.length)}% + ${idx > 0 ? 2 : 0}px)`,
+                          height: `calc(${100 / arr.length}% - ${arr.length > 1 ? 2 : 0}px)`,
+                          bottom: 'auto',
+                          position: 'absolute',
+                          zIndex: 2
+                        }}
+                        title={booking.title}
+                        onClick={() => setSelectedBooking(booking)}
+                      >
                         {booking.title}
                       </div>
                     ))}
@@ -583,7 +597,7 @@ const BookingManagement = () => {
         />
       )}
       
-      <div className="mt-24 p-2 sm:p-4 md:p-8">
+      <div className="mt-36 p-2 sm:p-4 md:p-8">
         <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:justify-between lg:items-center mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Booking Management</h1>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">

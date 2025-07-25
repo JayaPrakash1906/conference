@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const { Pool } = require('pg');
 require('dotenv').config();
 const { sendRegistrationCredentials } = require('./utils/emailService');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,6 +15,7 @@ const FALLBACK_PORT = 5001;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database configuration
 const pool = new Pool({

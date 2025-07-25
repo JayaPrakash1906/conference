@@ -50,6 +50,68 @@ const sendRegistrationCredentials = async (email, userId, password) => {
   }
 };
 
+// Template for booking confirmed
+const bookingConfirmedTemplate = (booking) => `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #27ae60;">Booking Confirmed</h2>
+    <p>Dear ${booking.name},</p>
+    <p>Your booking for <b>${booking.meeting_name}</b> in <b>${booking.booked_room_name || 'the room'}</b> on <b>${booking.date}</b> from <b>${booking.start_time}</b> to <b>${booking.end_time}</b> has been <b>confirmed</b>.</p>
+    <p>Thank you for using our service!</p>
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #7f8c8d; font-size: 0.8em;">
+        This is an automated message, please do not reply to this email.
+      </p>
+    </div>
+  </div>
+`;
+
+// Template for booking rejected
+const bookingRejectedTemplate = (booking) => `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #e74c3c;">Booking Rejected</h2>
+    <p>Dear ${booking.name},</p>
+    <p>We regret to inform you that your booking for <b>${booking.meeting_name}</b> in <b>${booking.booked_room_name || 'the room'}</b> on <b>${booking.date}</b> from <b>${booking.start_time}</b> to <b>${booking.end_time}</b> has been <b>rejected</b>.</p>
+    <p>If you have any questions, please contact the admin.</p>
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #7f8c8d; font-size: 0.8em;">
+        This is an automated message, please do not reply to this email.
+      </p>
+    </div>
+  </div>
+`;
+
+// Generic function to send booking status email
+const sendBookingStatusEmail = async (email, status, booking) => {
+  let subject, html;
+  if (status === 'confirmed') {
+    subject = 'Your Booking is Confirmed';
+    html = bookingConfirmedTemplate(booking);
+  } else if (status === 'rejected') {
+    subject = 'Your Booking is Rejected';
+    html = bookingRejectedTemplate(booking);
+  } else {
+    subject = 'Booking Status Updated';
+    html = `<p>Your booking status has been updated to <b>${status}</b>.</p>`;
+  }
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject,
+    html
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Booking status email sent:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending booking status email:', error);
+    throw error;
+  }
+};
+
 module.exports = {
-  sendRegistrationCredentials
+  sendRegistrationCredentials,
+  sendBookingStatusEmail
 }; 

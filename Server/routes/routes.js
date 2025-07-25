@@ -10,6 +10,8 @@ const { sendRegistrationCredentials } = require('../utils/emailService');
 const adminAuth = require('../middleware/adminAuth');
 const categoryController = require('../controller/categoryController');
 const teamController = require('../controller/teamController');
+const multer = require('multer');
+const path = require('path');
 
 
 // Database configuration
@@ -21,10 +23,22 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5001,
 });
 
+// Multer setup for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
+
 // Admin Room Routes
-router.post('/create', admin_roomController.CreateRoom);
+router.post('/create', upload.single('image'), admin_roomController.CreateRoom);
 router.get('/get', admin_roomController.FetchRoom);
-router.put('/update/:id', admin_roomController.UpdateRoom);
+router.put('/update/:id', upload.single('image'), admin_roomController.UpdateRoom);
 router.delete('/delete/:id', admin_roomController.DeleteRoom);
 
 // User Browse Room Routes
