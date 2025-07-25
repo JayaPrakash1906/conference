@@ -41,11 +41,50 @@ const BrowseRoom = () => {
     team: '' // <-- add this
   });
 
+  // Function to handle image loading errors
+  const handleImageError = (e) => {
+    e.target.src = img1; // Use fallback image if database image fails to load
+  };
+
+  // Function to get the image source
+  const getImageSource = (room) => {
+    console.log("BrowseRoom - Room image data:", room.image); // Debug log
+    
+    if (room.image && room.image.trim() !== "") {
+      // If the image path starts with /uploads, prepend the server URL
+      if (room.image.startsWith("/uploads")) {
+        const fullUrl = `http://13.127.171.141:5000${room.image}`;
+        console.log("BrowseRoom - Constructed image URL:", fullUrl); // Debug log
+        return fullUrl;
+      }
+      // If it's already a full URL, return as is
+      console.log("BrowseRoom - Using image as-is:", room.image); // Debug log
+      return room.image;
+    }
+    console.log("BrowseRoom - Using fallback image"); // Debug log
+    return img1;
+  };
+
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         const response = await axios.get("http://13.127.171.141:5000/api/get");
-        let fetchedRooms = response.data.rows;
+        console.log("BrowseRoom - Fetch response:", response.data); // Debug log
+        
+        let fetchedRooms = [];
+        if (response.data && Array.isArray(response.data)) {
+          fetchedRooms = response.data;
+        } else if (response.data && response.data.rows && Array.isArray(response.data.rows)) {
+          fetchedRooms = response.data.rows;
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          fetchedRooms = response.data.data;
+        } else {
+          console.error("Unexpected response structure:", response.data);
+          fetchedRooms = [];
+        }
+        
+        console.log("BrowseRoom - Processed rooms:", fetchedRooms); // Debug log
+        
         // Custom room order
         const roomOrder = [
           "Conference Room 101",
@@ -72,6 +111,7 @@ const BrowseRoom = () => {
           draggable: true,
           progress: undefined,
         });
+        setRooms([]);
       }
     };
     fetchRooms();
@@ -677,8 +717,9 @@ const BrowseRoom = () => {
             >
               <img
                 className="w-full h-40 sm:h-48 object-cover"
-                src={room.image || img1}
+                src={getImageSource(room)}
                 alt={room.name}
+                onError={handleImageError}
               />
               <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between min-h-[260px] sm:min-h-[320px]">
                 <div>
