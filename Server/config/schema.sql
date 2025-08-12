@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS booking (
     email VARCHAR(255) NOT NULL,
     team_category VARCHAR(100) NOT NULL,
     team_sub_category VARCHAR(100),
+    nirmaan_text TEXT,
     room_id INTEGER NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

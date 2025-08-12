@@ -3,7 +3,7 @@ const { sendBookingStatusEmail } = require('../utils/emailService');
 
 
 const CreateBrowse = async (req, res) => {
-    const {name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id} = req.body;
+    const {name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id, nirmaan_text} = req.body;
 
     // Basic validation
     if (!name || !meeting_name || !start_time || !end_time || !date || !meeting_purpose || !contact_number || !email || !team_category || !room_id) {
@@ -22,6 +22,12 @@ const CreateBrowse = async (req, res) => {
     }
 
     try {
+        // For Nirmaan Teams, use nirmaan_text as team_sub_category if provided
+        let finalTeamSubCategory = team_sub_category;
+        if (nirmaan_text && nirmaan_text.trim()) {
+            finalTeamSubCategory = nirmaan_text.trim();
+        }
+        
         const result = await CreateBrowseModel(
             name,
             meeting_name,
@@ -32,8 +38,9 @@ const CreateBrowse = async (req, res) => {
             contact_number,
             email,
             team_category,
-            team_sub_category,
-            room_id
+            finalTeamSubCategory,
+            room_id,
+            nirmaan_text
         );
         return res.status(201).json(result);
     } catch (err) {

@@ -221,6 +221,7 @@ const AdminTeamsManagement = () => {
     setEditingCategoryId(cat.id);
     setEditingCategoryName(cat.name);
   };
+
   const cancelEditCategory = () => {
     setEditingCategoryId(null);
     setEditingCategoryName('');
@@ -260,25 +261,28 @@ const AdminTeamsManagement = () => {
                             value={editingCategoryName}
                             onChange={e => setEditingCategoryName(e.target.value)}
                             className="flex-1 px-2 py-1 border rounded"
-                            onKeyDown={e => { if (e.key === 'Enter') handleEditCategory(); if (e.key === 'Escape') cancelEditCategory(); }}
+                            onKeyDown={e => { 
+                              if (e.key === 'Enter') handleEditCategory(); 
+                              if (e.key === 'Escape') cancelEditCategory(); 
+                            }}
                           />
                         ) : (
-                          <span className="font-medium">{category.name}</span>
+                          <span className="font-medium flex-1 text-left">{category.name}</span>
                         )}
                         <span className="ml-auto bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-sm">
                           {teamsByCategory[category.id]?.length || 0}
                         </span>
                       </button>
                       {editingCategoryId === category.id ? (
-                        <>
+                        <div className="flex gap-1">
                           <button onClick={handleEditCategory} className="text-green-600 px-2">✔</button>
                           <button onClick={cancelEditCategory} className="text-gray-600 px-2">✕</button>
-                        </>
+                        </div>
                       ) : (
-                        <>
+                        <div className="flex gap-1">
                           <button onClick={() => startEditCategory(category)} className="text-blue-600 px-2">✎</button>
                           <button onClick={() => deleteCategory(category)} className="text-red-600 px-2">🗑</button>
-                        </>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -289,7 +293,9 @@ const AdminTeamsManagement = () => {
                       value={newCategoryName}
                       onChange={e => setNewCategoryName(e.target.value)}
                       className="flex-1 px-2 py-1 border rounded"
-                      onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); }}
+                      onKeyDown={e => { 
+                        if (e.key === 'Enter') handleAddCategory(); 
+                      }}
                     />
                     <button onClick={handleAddCategory} className="bg-green-600 text-white px-3 py-1 rounded">Add</button>
                   </div>
@@ -364,7 +370,7 @@ const AdminTeamsManagement = () => {
                           <p className="text-gray-400 text-sm mt-2">Click "Add Team" to create the first team</p>
                         </div>
                       ) : (
-                        getCurrentTeams().map((team, index) => (
+                        getCurrentTeams().map((team) => (
                           <div key={team.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                             {editingTeam && editingTeam.categoryId === selectedCategory && editingTeam.teamId === team.id ? (
                               <div className="flex-1 flex items-center gap-3">
@@ -480,4 +486,4 @@ const AdminTeamsManagement = () => {
   );
 };
 
-export default AdminTeamsManagement; 
+export default AdminTeamsManagement;

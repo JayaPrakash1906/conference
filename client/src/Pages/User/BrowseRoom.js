@@ -38,7 +38,8 @@ const BrowseRoom = () => {
     email: JSON.parse(localStorage.getItem('user'))?.email || '',
     team_category: '', // No default, must select
     team_sub_category: '',
-    team: '' // <-- add this
+    team: '', // <-- add this
+    nirmaan_text: '' // Add field for Nirmaan text input
   });
 
   // Function to handle image loading errors
@@ -197,7 +198,8 @@ const BrowseRoom = () => {
       setFormData(prev => ({
         ...prev,
         team_sub_category: '',
-        team: '' // reset team when category changes
+        team: '', // reset team when category changes
+        nirmaan_text: '' // reset Nirmaan text when category changes
       }));
     }
     if (name === 'team') {
@@ -266,7 +268,8 @@ const BrowseRoom = () => {
       email: JSON.parse(localStorage.getItem('user'))?.email || '',
       team_category: '',
       team_sub_category: '',
-      team: ''
+      team: '',
+      nirmaan_text: ''
     });
   };
 
@@ -318,15 +321,31 @@ const BrowseRoom = () => {
       return;
     }
 
+    // Validation for Nirmaan Teams - require team name
+    const selectedCategory = categories.find(cat => cat.id.toString() === formData.team_category);
+    if (selectedCategory?.name === 'Nirmaan Teams' && !formData.nirmaan_text.trim()) {
+      toast.error("Please enter your Nirmaan team name.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Format date and time properly
       const formattedDate = selectedDate.format('YYYY-MM-DD');
       
-      // Get team name from selected team ID
-      const selectedTeam = teams.find(t => t.id.toString() === formData.team);
-      const teamName = selectedTeam ? selectedTeam.name : formData.team_sub_category;
+      // Get team name from selected team ID or use Nirmaan text
+      const selectedCategory = categories.find(cat => cat.id.toString() === formData.team_category);
+      let teamName;
+      
+      if (selectedCategory?.name === 'Nirmaan Teams') {
+        // For Nirmaan Teams, use the text input as team name
+        teamName = formData.nirmaan_text;
+      } else {
+        // For other categories, use selected team from dropdown
+        const selectedTeam = teams.find(t => t.id.toString() === formData.team);
+        teamName = selectedTeam ? selectedTeam.name : formData.team_sub_category;
+      }
       
       const bookingData = {
         ...formData,
@@ -334,7 +353,8 @@ const BrowseRoom = () => {
         start_time: formData.start_time,
         end_time: formData.end_time,
         room_id: selectedRoom.id,
-        team_sub_category: teamName
+        team_sub_category: teamName,
+        nirmaan_text: formData.nirmaan_text || '' // Include Nirmaan text if provided
       };
 
       const response = await axios.post("http://13.127.171.141:5000/api/create_browseroom", bookingData);
@@ -599,8 +619,8 @@ const BrowseRoom = () => {
                     </select>
                   </div>
 
-                  {/* Team dropdown: Only show if a category is selected and there are teams */}
-                  {formData.team_category && teams.length > 0 && (
+                  {/* Team dropdown: Only show if a category is selected and there are teams, but NOT for Nirmaan Teams */}
+                  {formData.team_category && teams.length > 0 && categories.find(cat => cat.id.toString() === formData.team_category)?.name !== 'Nirmaan Teams' && (
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-left mt-2">
                         Team
@@ -617,6 +637,24 @@ const BrowseRoom = () => {
                           <option key={team.id} value={team.id}>{team.name}</option>
                         ))}
                       </select>
+                    </div>
+                  )}
+
+                  {/* Nirmaan Teams Text Field: Only show if Nirmaan Teams is selected */}
+                  {formData.team_category && categories.find(cat => cat.id.toString() === formData.team_category)?.name === 'Nirmaan Teams' && (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-left mt-2">
+                        Team Name
+                      </label>
+                      <input 
+                        type="text"
+                        name="nirmaan_text"
+                        placeholder="Enter your Nirmaan team name..." 
+                        className="w-full border px-3 py-2 rounded-md" 
+                        value={formData.nirmaan_text}
+                        onChange={handleInputChange}
+                        required
+                      />
                     </div>
                   )}
 

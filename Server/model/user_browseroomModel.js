@@ -48,7 +48,8 @@ const CreateBrowseModel = async (
   email,
   team_category,
   team_sub_category,
-  room_id
+  room_id,
+  nirmaan_text
 ) => {
   try {
     // Convert time and date to timestamp
@@ -76,8 +77,8 @@ const CreateBrowseModel = async (
 
     const result = await pool.query(
       `INSERT INTO booking 
-       (name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id) 
-       VALUES ($1, $2, $3::timestamp, $4::timestamp, $5::date, $6, $7, $8, $9, $10, $11) 
+       (name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, nirmaan_text, room_id) 
+       VALUES ($1, $2, $3::timestamp, $4::timestamp, $5::date, $6, $7, $8, $9, $10, $11, $12) 
        RETURNING *`,
       [
         name,
@@ -90,6 +91,7 @@ const CreateBrowseModel = async (
         email,
         team_category,
         team_sub_category,
+        nirmaan_text,
         room_id
       ]
     );
@@ -113,6 +115,7 @@ const FetchBrowseModel = (userEmail = null) => {
         b.status,
         b.team_category,
         b.team_sub_category,
+        b.nirmaan_text,
         b.contact_number,
         b.email,
         b.name,
