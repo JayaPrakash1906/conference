@@ -41,4 +41,29 @@ CREATE TABLE bookings (
     team_sub_category VARCHAR(50),
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-); 
+);
+
+-- Google OAuth tokens table
+CREATE TABLE IF NOT EXISTS google_tokens (
+    user_email VARCHAR(100) PRIMARY KEY,
+    access_token TEXT,
+    refresh_token TEXT,
+    scope TEXT,
+    expiry_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_google_tokens_updated_at ON google_tokens;
+CREATE TRIGGER update_google_tokens_updated_at
+BEFORE UPDATE ON google_tokens
+FOR EACH ROW
+EXECUTE PROCEDURE update_updated_at_column(); 

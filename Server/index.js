@@ -1,12 +1,16 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const { Pool } = require('pg');
+const cron = require('node-cron');
+const { Pool, Client } = require('pg');
 require('dotenv').config();
 const path = require('path');
 const roomRoutes = require('./routes/roomRoutes');
-const userRoutes = require('./routes/routes');
-const { sendRegistrationCredentials } = require('./utils/emailService');
+const userRoutes = require('./routes/routes'); // Assuming this contains other user routes
+const { sendRegistrationCredentials, sendMeetingReminderEmail } = require('./utils/emailService');
+
+// Start reminder system
+require('./reminderSystem');
 
 const app = express();
 
@@ -15,12 +19,12 @@ app.use(cors());
 app.use(express.json());
 
 // Database configuration
-const pool = new Pool({
+const db = new Pool({
   user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'calendar',
-  password: process.env.DB_PASSWORD || '5432',
-  port: process.env.DB_PORT || 5001,
+  password: process.env.DB_PASSWORD || 'root',
+  port: process.env.DB_PORT || 5432,
 });
 
 // Test endpoint
@@ -46,7 +50,7 @@ app.post('/api/register', async (req, res) => {
     }
 
     // Check if user exists
-    const userExists = await pool.query(
+    const userExists = await db.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
     );
@@ -60,7 +64,7 @@ app.post('/api/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create new user
-    const newUser = await pool.query(
+    const newUser = await db.query(
       'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
       [name, email, hashedPassword, role]
     );
@@ -92,6 +96,8 @@ app.post('/api/register', async (req, res) => {
     }
   }
 });
+
+// Reminder cron disabled
 
 // Routes
 app.use('/api', roomRoutes);
@@ -129,4 +135,4 @@ app.listen(PORT, () => {
   } else {
     console.warn('Email service not configured. Set EMAIL_USER and EMAIL_PASS in .env file to enable email notifications');
   }
-}); 
+});

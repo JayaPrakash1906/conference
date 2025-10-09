@@ -1,9 +1,9 @@
-const {CreateBrowseModel, FetchBrowseModel, UpdateBrowseModel, DeleteBrowseModel, UpdateBrowseStatus}  = require('../model/user_browseroomModel');
+const {CreateBrowseModel, FetchBrowseModel, UpdateBrowseModel, DeleteBrowseModel, UpdateBrowseStatus, GetBookingById}  = require('../model/user_browseroomModel');
 const { sendBookingStatusEmail } = require('../utils/emailService');
 
 
 const CreateBrowse = async (req, res) => {
-    const {name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id, nirmaan_text} = req.body;
+    const {name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id, nirmaan_text, status} = req.body;
 
     // Basic validation
     if (!name || !meeting_name || !start_time || !end_time || !date || !meeting_purpose || !contact_number || !email || !team_category || !room_id) {
@@ -13,8 +13,11 @@ const CreateBrowse = async (req, res) => {
     // Get user from request (assuming it's set by auth middleware)
     const userEmail = req.query.email || req.body.email;
     
-    // Validate that the booking email matches the logged-in user's email
-    if (email !== userEmail) {
+    // For admin bookings, skip email validation as admin can book for anyone
+    const isAdminBooking = status === 'confirmed';
+    
+    // Validate that the booking email matches the logged-in user's email (only for non-admin bookings)
+    if (!isAdminBooking && email !== userEmail) {
         return res.status(403).json({ 
             status: 'Forbidden', 
             message: 'You can only make bookings with your own email address' 
@@ -28,6 +31,11 @@ const CreateBrowse = async (req, res) => {
             finalTeamSubCategory = nirmaan_text.trim();
         }
         
+        // Debug logging
+        console.log('Admin booking status being sent:', status);
+        console.log('Is admin booking:', status === 'confirmed');
+        
+        // Create the booking with the specified status
         const result = await CreateBrowseModel(
             name,
             meeting_name,
@@ -40,8 +48,49 @@ const CreateBrowse = async (req, res) => {
             team_category,
             finalTeamSubCategory,
             room_id,
-            nirmaan_text
+            nirmaan_text,
+            status || 'pending'
         );
+        
+        console.log('Booking created with status:', result.status);
+
+        // Auto-send confirmation email for admin bookings (confirmed status)
+        if (status === 'confirmed') {
+            try {
+                // Get the room name for the email
+                const { Pool } = require('pg');
+                const pool = new Pool({
+                    user: process.env.DB_USER || 'postgres',
+                    host: process.env.DB_HOST || 'localhost',
+                    database: process.env.DB_NAME || 'calendar',
+                    password: process.env.DB_PASSWORD || '5432',
+                    port: process.env.DB_PORT || 5001,
+                });
+
+                const roomQuery = await pool.query('SELECT name FROM rooms WHERE id = $1', [room_id]);
+                const roomName = roomQuery.rows[0]?.name || 'Room not found';
+
+                // Create booking object for email template
+                const bookingForEmail = {
+                    ...result,
+                    booked_room_name: roomName,
+                    name: name,
+                    meeting_name: meeting_name,
+                    date: date,
+                    start_time: start_time,
+                    end_time: end_time,
+                    meeting_purpose: meeting_purpose
+                };
+
+                console.log('Sending auto-confirmation email for admin booking:', email);
+                await sendBookingStatusEmail(email, 'confirmed', bookingForEmail);
+                console.log('Auto-confirmation email sent successfully');
+            } catch (emailErr) {
+                console.error('Failed to send auto-confirmation email for admin booking:', emailErr);
+                // Don't fail the booking creation if email fails
+            }
+        }
+
         return res.status(201).json(result);
     } catch (err) {
         console.error("Error creating booking:", err);
@@ -159,18 +208,177 @@ const UpdateBrowse = async (req, res) => {
 };
 
 const DeleteBrowse = async (req, res) => {
-    const id = req.params.id;  
+    const id = req.params.id;
+    const requesterEmail = req.query.email;
 
     if (!id) {
-        return res.status(400).json({ error: "Params missing" });  
+        return res.status(400).json({ error: "Params missing" });
+    }
+    if (!requesterEmail) {
+        return res.status(400).json({ error: "Email query param required" });
     }
 
     try {
-        const result = await DeleteBrowseModel(id);  
+        const booking = await GetBookingById(id);
+        if (!booking) {
+            return res.status(404).json({ error: "Booking not found" });
+        }
+        if (String(booking.email).toLowerCase() !== String(requesterEmail).toLowerCase()) {
+            return res.status(403).json({ error: "You can only delete your own bookings" });
+        }
+
+        const result = await DeleteBrowseModel(id);
         return res.status(200).json(result);
     } catch (err) {
-        return res.status(500).json({ error: err.message }); 
+        return res.status(500).json({ error: err.message });
     }
 };
 
-module.exports = { CreateBrowse, FetchBrowse, UpdateBrowse, DeleteBrowse };
+
+// Bulk create events
+const BulkCreateEvents = async (req, res) => {
+    const { events } = req.body;
+    
+    if (!events || !Array.isArray(events)) {
+        return res.status(400).json({ error: "Events array is required" });
+    }
+
+    try {
+        const results = [];
+        const errors = [];
+
+        for (const event of events) {
+            try {
+                const result = await CreateBrowseModel(
+                    event.name,
+                    event.meeting_name,
+                    event.start_time,
+                    event.end_time,
+                    event.date,
+                    event.meeting_purpose,
+                    event.contact_number,
+                    event.email,
+                    event.team_category,
+                    event.team_sub_category,
+                    event.room_id,
+                    event.nirmaan_text
+                );
+                results.push(result);
+            } catch (err) {
+                errors.push({
+                    event: event.meeting_name,
+                    error: err.message
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            created: results.length,
+            errors: errors.length,
+            results,
+            errors
+        });
+    } catch (err) {
+        console.error("Error in bulk create:", err);
+        return res.status(500).json({ error: err.message });
+    }
+};
+
+// Bulk update events
+const BulkUpdateEvents = async (req, res) => {
+    const { events } = req.body;
+    
+    if (!events || !Array.isArray(events)) {
+        return res.status(400).json({ error: "Events array is required" });
+    }
+
+    try {
+        const results = [];
+        const errors = [];
+
+        for (const event of events) {
+            try {
+                const result = await UpdateBrowseModel(
+                    event.id,
+                    event.name,
+                    event.meeting_name,
+                    event.start_time,
+                    event.end_time,
+                    event.date,
+                    event.meeting_purpose,
+                    event.contact_number,
+                    event.email,
+                    event.team_category,
+                    event.team_sub_category,
+                    event.room_id,
+                    event.nirmaan_text
+                );
+                results.push(result);
+            } catch (err) {
+                errors.push({
+                    event: event.meeting_name,
+                    error: err.message
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            updated: results.length,
+            errors: errors.length,
+            results,
+            errors
+        });
+    } catch (err) {
+        console.error("Error in bulk update:", err);
+        return res.status(500).json({ error: err.message });
+    }
+};
+
+// Bulk delete events
+const BulkDeleteEvents = async (req, res) => {
+    const { eventIds } = req.body;
+    
+    if (!eventIds || !Array.isArray(eventIds)) {
+        return res.status(400).json({ error: "Event IDs array is required" });
+    }
+
+    try {
+        const results = [];
+        const errors = [];
+
+        for (const id of eventIds) {
+            try {
+                const result = await DeleteBrowseModel(id);
+                results.push(result);
+            } catch (err) {
+                errors.push({
+                    id,
+                    error: err.message
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            deleted: results.length,
+            errors: errors.length,
+            results,
+            errors
+        });
+    } catch (err) {
+        console.error("Error in bulk delete:", err);
+        return res.status(500).json({ error: err.message });
+    }
+};
+
+module.exports = { 
+    CreateBrowse, 
+    FetchBrowse, 
+    UpdateBrowse, 
+    DeleteBrowse,
+    BulkCreateEvents,
+    BulkUpdateEvents,
+    BulkDeleteEvents
+};

@@ -49,9 +49,13 @@ const CreateBrowseModel = async (
   team_category,
   team_sub_category,
   room_id,
-  nirmaan_text
+  nirmaan_text,
+  status = 'pending'
 ) => {
   try {
+    // Debug logging
+    console.log('CreateBrowseModel called with status:', status);
+    console.log('All parameters:', { name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id, nirmaan_text, status });
     // Convert time and date to timestamp
     const formatTimeToTimestamp = (timeStr, dateStr) => {
       if (!timeStr || !dateStr) return null;
@@ -75,26 +79,34 @@ const CreateBrowseModel = async (
       throw new Error('This room is already booked for the selected time slot');
     }
 
+    const insertValues = [
+      name,
+      meeting_name,
+      formattedStartTime,
+      formattedEndTime,
+      date,
+      meeting_purpose,
+      contact_number,
+      email,
+      team_category,
+      team_sub_category,
+      nirmaan_text,
+      room_id,
+      status
+    ];
+    
+    console.log('Inserting with values:', insertValues);
+    console.log('Status being inserted:', status);
+    
     const result = await pool.query(
       `INSERT INTO booking 
-       (name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, nirmaan_text, room_id) 
-       VALUES ($1, $2, $3::timestamp, $4::timestamp, $5::date, $6, $7, $8, $9, $10, $11, $12) 
+       (name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, nirmaan_text, room_id, status) 
+       VALUES ($1, $2, $3::timestamp, $4::timestamp, $5::date, $6, $7, $8, $9, $10, $11, $12, $13) 
        RETURNING *`,
-      [
-        name,
-        meeting_name,
-        formattedStartTime,
-        formattedEndTime,
-        date,
-        meeting_purpose,
-        contact_number,
-        email,
-        team_category,
-        team_sub_category,
-        nirmaan_text,
-        room_id
-      ]
+      insertValues
     );
+    
+    console.log('Insert result:', result.rows[0]);
     return result.rows[0];
   } catch (error) {
     throw error;
@@ -170,6 +182,11 @@ const UpdateBrowseModel = async (name, meeting_name, date, start_time, end_time,
   }
 };
 
+const GetBookingById = async (id) => {
+  const res = await pool.query('SELECT * FROM booking WHERE id = $1', [id]);
+  return res.rows[0] || null;
+};
+
 const DeleteBrowseModel = (id) => {
   return new Promise((resolve, reject) => {
     pool.query('DELETE FROM booking WHERE id = $1', [id], (err, result) => {
@@ -239,5 +256,5 @@ const UpdateBrowseStatus = async (id, status, updated_at) => {
   }
 };
 
-module.exports = {CreateBrowseModel, FetchBrowseModel, UpdateBrowseModel, DeleteBrowseModel, UpdateBrowseStatus};
+module.exports = {CreateBrowseModel, FetchBrowseModel, UpdateBrowseModel, DeleteBrowseModel, UpdateBrowseStatus, GetBookingById};
 

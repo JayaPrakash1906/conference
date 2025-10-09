@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../components/UserNavbar";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import img1 from "../../Assets/pexels-photo-260928.jpeg";
 import { FaLocationDot, FaPeopleGroup } from "react-icons/fa6";
@@ -9,6 +10,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const BrowseRoom = () => {
   const [rooms, setRooms] = useState([]);
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [capacityFilter, setCapacityFilter] = useState("Any capacity");
   const [equipmentFilters, setEquipmentFilters] = useState([]);
@@ -304,6 +306,7 @@ const BrowseRoom = () => {
 
     // Validation for past date and time
     const now = dayjs();
+    const maxBookingDate = dayjs().add(10, 'day');
     const [startHour, startMinute] = formData.start_time.split(':');
     const selectedStartDateTime = selectedDate
       .hour(parseInt(startHour))
@@ -312,6 +315,12 @@ const BrowseRoom = () => {
 
     if (selectedStartDateTime.isBefore(now)) {
       toast.error("You cannot book a room for a past date or time.");
+      return;
+    }
+
+    // Validation for booking window (next 10 days only)
+    if (selectedDate.isAfter(maxBookingDate, 'day')) {
+      toast.error("You can only book rooms for the next 10 days.");
       return;
     }
 
@@ -441,7 +450,16 @@ const BrowseRoom = () => {
     <div>
       <Navbar />
       <div className="mt-32 p-2 sm:p-4">
-        <h1 className="text-2xl sm:text-3xl font-bold font-dmsans mb-2 sm:mb-4">Room Management</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2 sm:mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold font-dmsans">Room Management</h1>
+          <button
+            type="button"
+            className="self-start sm:self-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={() => navigate('/user/calendar')}
+          >
+            View Calendar
+          </button>
+        </div>
         
         {isBookingOpen && selectedRoom && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={handleBackdropClick}>
@@ -462,6 +480,13 @@ const BrowseRoom = () => {
                 <p className="text-sm text-blue-800">
                   <strong>Selected Date:</strong> {selectedDate.format('dddd, MMMM D, YYYY')}
                 </p>
+                <button
+                  type="button"
+                  className="mt-2 text-sm text-blue-700 hover:underline"
+                  onClick={() => navigate('/user/calendar')}
+                >
+                  View all bookings in Calendar
+                </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -507,6 +532,7 @@ const BrowseRoom = () => {
                       value={selectedDate.format('YYYY-MM-DD')}
                       onChange={(e) => setSelectedDate(dayjs(e.target.value))}
                       min={dayjs().format('YYYY-MM-DD')}
+                      max={dayjs().add(10, 'day').format('YYYY-MM-DD')}
                       required 
                     />
                   </div>
@@ -678,7 +704,6 @@ const BrowseRoom = () => {
                     </div>
                   )} */}
                 </div>
-
                 <div className="flex justify-end gap-4">
                   <button
                     type="button"

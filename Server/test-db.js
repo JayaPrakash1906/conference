@@ -1,47 +1,46 @@
-const { Pool } = require('pg');
+﻿const { Pool } = require('pg');
+require('dotenv').config();
 
-// Database configuration
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'calendar',
-  password: process.env.DB_PASSWORD || '5432',
-  port: process.env.DB_PORT || 5001,
+  password: process.env.DB_PASSWORD || 'root',
+  port: process.env.DB_PORT || 5432,
 });
 
-async function testDatabase() {
+async function testDB() {
   try {
-    console.log('Testing database...');
+    const client = await pool.connect();
+    console.log('Connected to database successfully');
     
-    // Check if teams table exists
-    const tableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'teams'
-      );
-    `);
+    // Check current time
+    const now = await client.query("SELECT NOW() AT TIME ZONE 'Asia/Kolkata' as current_time");
+    console.log('Current time (IST):', now.rows[0].current_time);
     
-    console.log('Teams table exists:', tableCheck.rows[0].exists);
+    // Check table structure
+    const tableInfo = await client.query(\
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'booking' 
+      ORDER BY ordinal_position
+    \);
+    console.log('\\nBooking table structure:');
+    tableInfo.rows.forEach(row => console.log(\  \: \\));
     
-    if (tableCheck.rows[0].exists) {
-      // Check teams data
-      const teamsData = await pool.query('SELECT * FROM teams');
-      console.log('Teams data:', teamsData.rows);
-      
-      // Check categories data
-      const categoriesData = await pool.query('SELECT * FROM categories');
-      console.log('Categories data:', categoriesData.rows);
-      
-      // Check booking data
-      const bookingData = await pool.query('SELECT id, team_category, team_sub_category FROM booking LIMIT 5');
-      console.log('Sample booking data:', bookingData.rows);
-    }
+    // Check if reminder_sent column exists
+    const reminderColumn = await client.query(\
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'booking' AND column_name = 'reminder_sent'
+    \);
+    console.log('\\nReminder_sent column exists:', reminderColumn.rows.length > 0);
     
-  } catch (error) {
-    console.error('Error testing database:', error);
-  } finally {
+    client.release();
     await pool.end();
+  } catch (error) {
+    console.error('Error:', error.message);
   }
 }
 
-testDatabase(); 
+testDB();

@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS booking (
     room_id INTEGER NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reminder_sent BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
 

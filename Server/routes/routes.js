@@ -47,11 +47,18 @@ router.get('/get_browseroom', user_browseroomController.FetchBrowse);
 router.put('/update_browseroom/:id', user_browseroomController.UpdateBrowse);
 router.delete('/delete_browseroom/:id', user_browseroomController.DeleteBrowse);
 
+// Advanced Calendar Routes
+router.get('/rooms', admin_roomController.FetchRoom);
+router.get('/categories', categoryController.getAllCategories);
+router.post('/bulk_create_events', user_browseroomController.BulkCreateEvents);
+router.put('/bulk_update_events', user_browseroomController.BulkUpdateEvents);
+router.delete('/bulk_delete_events', user_browseroomController.BulkDeleteEvents);
+
 // Test connection
 router.get('/test', userController.testConnection);
 
 // Auth routes
-router.post('/register', async (req, res) => {
+router.post('/register', async (req, res) => { 
   try {
     console.log('Registration request received:', req.body);
     const { name, email, password, role } = req.body;

@@ -80,6 +80,16 @@ const UserNavbar = () => {
         >
           My Bookings
         </a>
+        <a
+          href="/user/calendar"
+          className={`transition hover:text-blue-500 ${
+            window.location.pathname === '/user/calendar'
+              ? 'text-blue-500 font-semibold'
+              : 'text-gray-600'
+          }`}
+        >
+          Calendar View
+        </a>
       </div>
 
       {/* Mobile Menu */}
@@ -107,6 +117,17 @@ const UserNavbar = () => {
               onClick={() => setMenuOpen(false)}
             >
               My Bookings
+            </a>
+            <a
+              href="/user/calendar"
+              className={`transition hover:text-blue-500 ${
+                window.location.pathname === '/user/calendar'
+                  ? 'text-blue-500 font-semibold'
+                  : 'text-gray-600'
+              }`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Calendar View
             </a>
             <div className="border-t my-2"></div>
             <div className="flex items-center justify-between w-full mt-2 gap-2">

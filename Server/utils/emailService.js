@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+﻿const nodemailer = require('nodemailer');
 
 // Create a transporter using Gmail
 const transporter = nodemailer.createTransport({
@@ -29,7 +29,7 @@ const sendRegistrationCredentials = async (email, userId, password) => {
           <p>For security reasons, we recommend changing your password after your first login.</p> 
           
           <p style="color: #7f8c8d; font-size: 0.9em;">
-            If you didn't create this account, please contact our support team immediately.
+            If you did not create this account, please contact our support team immediately.
           </p>
           
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
@@ -50,12 +50,58 @@ const sendRegistrationCredentials = async (email, userId, password) => {
   }
 };
 
-// Template for booking confirmed
-const bookingConfirmedTemplate = (booking) => `
+// Helper function to format date properly
+const formatDateForEmail = (dateString) => {
+  if (!dateString) return 'Date not specified';
+  
+  // Handle different date formats
+  let date;
+  if (typeof dateString === 'string') {
+    // If it's a string like "2025-11-13" or "2025-11-13T00:00:00.000Z"
+    date = new Date(dateString);
+  } else {
+    date = dateString;
+  }
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return 'Date not specified';
+  }
+  
+  // Format as "Thursday, November 13, 2025"
+  const options = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  
+  return date.toLocaleDateString('en-US', options);
+};
+
+// Helper function to format time properly
+const formatTimeForEmail = (timeString) => {
+  if (!timeString) return 'Time not specified';
+  
+  // Convert 24-hour format to 12-hour format
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
+// Templates for booking status emails
+const bookingConfirmedTemplate = (booking) => {
+  const formattedDate = formatDateForEmail(booking.date);
+  const formattedStartTime = formatTimeForEmail(booking.start_time);
+  const formattedEndTime = formatTimeForEmail(booking.end_time);
+  
+  return `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
     <h2 style="color: #27ae60;">Booking Confirmed</h2>
     <p>Dear ${booking.name},</p>
-    <p>Your booking for <b>${booking.meeting_name}</b> in <b>${booking.booked_room_name || 'the room'}</b> on <b>${booking.date}</b> from <b>${booking.start_time}</b> to <b>${booking.end_time}</b> has been <b>confirmed</b>.</p>
+    <p>Your booking for <b>${booking.meeting_name}</b> in <b>${booking.booked_room_name || 'the room'}</b> on <b>${formattedDate}</b> from <b>${formattedStartTime}</b> to <b>${formattedEndTime}</b> has been <b>confirmed</b>.</p>
     <p>Thank you for using our service!</p>
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
       <p style="color: #7f8c8d; font-size: 0.8em;">
@@ -64,13 +110,18 @@ const bookingConfirmedTemplate = (booking) => `
     </div>
   </div>
 `;
+};
 
-// Template for booking rejected
-const bookingRejectedTemplate = (booking) => `
+const bookingRejectedTemplate = (booking) => {
+  const formattedDate = formatDateForEmail(booking.date);
+  const formattedStartTime = formatTimeForEmail(booking.start_time);
+  const formattedEndTime = formatTimeForEmail(booking.end_time);
+  
+  return `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
     <h2 style="color: #e74c3c;">Booking Rejected</h2>
     <p>Dear ${booking.name},</p>
-    <p>We regret to inform you that your booking for <b>${booking.meeting_name}</b> in <b>${booking.booked_room_name || 'the room'}</b> on <b>${booking.date}</b> from <b>${booking.start_time}</b> to <b>${booking.end_time}</b> has been <b>rejected</b>.</p>
+    <p>We regret to inform you that your booking for <b>${booking.meeting_name}</b> in <b>${booking.booked_room_name || 'the room'}</b> on <b>${formattedDate}</b> from <b>${formattedStartTime}</b> to <b>${formattedEndTime}</b> has been <b>rejected</b>.</p>
     <p>If you have any questions, please contact the admin.</p>
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
       <p style="color: #7f8c8d; font-size: 0.8em;">
@@ -79,6 +130,42 @@ const bookingRejectedTemplate = (booking) => `
     </div>
   </div>
 `;
+};
+
+// Reminder email template
+const bookingReminderTemplate = (booking) => {
+  const formattedDate = formatDateForEmail(booking.date);
+  const formattedStartTime = formatTimeForEmail(booking.start_time);
+  const formattedEndTime = formatTimeForEmail(booking.end_time);
+  
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #f39c12;">Meeting Reminder - 10 Minutes</h2>
+    <p>Dear ${booking.name},</p>
+    <p>This is a friendly reminder that your meeting <b>${booking.meeting_name}</b> is scheduled to start in <b>10 minutes</b>.</p>
+    
+    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+      <h3 style="color: #2c3e50; margin-top: 0;">Meeting Details:</h3>
+      <p><strong>Meeting:</strong> ${booking.meeting_name}</p>
+      <p><strong>Room:</strong> ${booking.booked_room_name || 'Room not specified'}</p>
+      <p><strong>Date:</strong> ${formattedDate}</p>
+      <p><strong>Start Time:</strong> ${formattedStartTime}</p>
+      <p><strong>End Time:</strong> ${formattedEndTime}</p>
+      <p><strong>Purpose:</strong> ${booking.meeting_purpose}</p>
+    </div>
+    
+    <p style="color: #7f8c8d; font-size: 0.9em;">
+      Please make sure to arrive on time. If you need to cancel or reschedule, please contact the admin as soon as possible.
+    </p>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #7f8c8d; font-size: 0.8em;">
+        This is an automated reminder, please do not reply to this email.
+      </p>
+    </div>
+  </div>
+`;
+};
 
 // Generic function to send booking status email
 const sendBookingStatusEmail = async (email, status, booking) => {
@@ -111,7 +198,27 @@ const sendBookingStatusEmail = async (email, status, booking) => {
   }
 };
 
+// Function to send reminder email
+const sendReminderEmail = async (email, booking) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Meeting Reminder: ${booking.meeting_name} starts in 10 minutes`,
+    html: bookingReminderTemplate(booking)
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Reminder email sent:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending reminder email:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendRegistrationCredentials,
-  sendBookingStatusEmail
-}; 
+  sendBookingStatusEmail,
+  sendReminderEmail
+};

@@ -9,6 +9,8 @@ import RoomManagement from "./Pages/Admin/RoomManagement"
 import Register from "./Pages/Admin/Register"
 import BrowseRoom from './Pages/User/BrowseRoom';
 import MyBooking from './Pages/User/MyBooking';
+import CalendarView from './Pages/User/CalendarView';
+
 import ProtectedRoute from './components/ProtectedRoute';
 import SessionManager from './components/SessionManager';
 import AdminTeamsManagement from './Pages/Admin/AdminTeamsManagement';
@@ -49,6 +51,9 @@ function App() {
           {/* <Route path="/admin/categories" element={<ProtectedRoute allowedRoles={['admin']}><AdminCategoryManager /></ProtectedRoute>} /> */}
           <Route path="/user/browse_room" element={<ProtectedRoute allowedRoles={['user']}><BrowseRoom /></ProtectedRoute>}/>
           <Route path="/user/my_booking" element={<ProtectedRoute allowedRoles={['user']}><MyBooking /></ProtectedRoute>}/>
+          <Route path="/user/calendar" element={<ProtectedRoute allowedRoles={['user']}><CalendarView /></ProtectedRoute>}/>
+          
+          
           <Route path="*" element={ <ProtectedRoute allowedRoles={['admin', 'user']}>{({ user }) => (<Navigate to={user.role === 'admin' ? '/admin/room' : '/user/browse_room'}replace/>)}</ProtectedRoute>}/>
         </Routes>
       </BrowserRouter>

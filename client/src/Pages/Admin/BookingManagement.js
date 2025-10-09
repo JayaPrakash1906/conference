@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, X, Check, CheckCircle2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User, Phone, Mail, Target } from 'lucide-react';
+import { Filter, X, Check, CheckCircle2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User, Phone, Mail, Target, Plus } from 'lucide-react';
 import Navbar from '../../components/AdminNavbar';
+
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
 import DetailedBookingCard from './DetailedBookingCard';
 
 const NotificationToast = ({ message, onClose }) => {
@@ -44,25 +46,82 @@ const BookingManagement = () => {
   const [expandedDays, setExpandedDays] = useState(new Set());
   const [categoryMap, setCategoryMap] = useState({});
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  
+  // Booking form states
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    meeting_name: '',
+    start_time: '',
+    end_time: '',
+    meeting_purpose: '',
+    contact_number: '',
+    email: '',
+    team_category: '',
+    team_sub_category: '',
+    nirmaan_text: '',
+    room_id: ''
+  });
 
   // Fetch categories on mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('/api/');
-        const cats = await res.json();
+        const res = await axios.get('http://13.127.171.141:5000/api/');
+        const cats = res.data;
+        console.log('Fetched categories:', cats); // Debug log
         // Build id->name map
         const map = {};
         (Array.isArray(cats) ? cats : []).forEach(cat => {
           map[cat.id] = cat.name;
         });
         setCategoryMap(map);
+        setCategories(Array.isArray(cats) ? cats : []);
+        console.log('Categories set:', Array.isArray(cats) ? cats : []); // Debug log
       } catch (e) {
+        console.error('Error fetching categories:', e); // Debug log
         setCategoryMap({});
+        setCategories([]);
       }
     };
     fetchCategories();
   }, []);
+
+  // Fetch rooms for booking form
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await axios.get("http://13.127.171.141:5000/api/get");
+        let fetchedRooms = [];
+        if (response.data && Array.isArray(response.data)) fetchedRooms = response.data;
+        else if (response.data?.rows && Array.isArray(response.data.rows)) fetchedRooms = response.data.rows;
+        else if (response.data?.data && Array.isArray(response.data.data)) fetchedRooms = response.data.data;
+        setRooms(fetchedRooms);
+      } catch {
+        setRooms([]);
+      }
+    };
+    fetchRooms();
+  }, []);
+
+  // Fetch teams when category changes
+  useEffect(() => {
+    if (formData.team_category) {
+      axios.get(`http://13.127.171.141:5000/api/category/${formData.team_category}`)
+        .then(res => setTeams(Array.isArray(res.data) ? res.data : []))
+        .catch(() => setTeams([]));
+      setFormData(prev => ({ ...prev, team_sub_category: '' }));
+    } else {
+      setTeams([]);
+      setFormData(prev => ({ ...prev, team_sub_category: '' }));
+    }
+  }, [formData.team_category]);
 
   const fetchBookings = async () => {
     try {
@@ -96,6 +155,7 @@ const BookingManagement = () => {
           categoryDisplay = 'Unknown Category';
         }
 
+        const rawDateKey = (booking.date || '').toString().slice(0, 10);
         return {
           id: booking.id,
           title: booking.meeting_name || 'Untitled Meeting',
@@ -103,7 +163,7 @@ const BookingManagement = () => {
           status: booking.status || 'Pending',
           room: booking.booked_room_name,
           location: `${booking.location || 'Location not specified'}`,
-          date: dayjs(booking.date).format('ddd, MMM D, YYYY'),
+          date: new Date(booking.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
           time: formattedTime,
           rawStartTime: booking.start_time,
           rawEndTime: booking.end_time,
@@ -114,14 +174,14 @@ const BookingManagement = () => {
           team_sub_category: booking.team_sub_category,
           contactNumber: booking.contact_number,
           email: booking.email,
-          rawDate: dayjs(booking.date).format('YYYY-MM-DD')
+          rawDate: rawDateKey
         };
       });
 
       const sorted = transformedBookings.sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1;
         if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return dayjs(b.rawDate).diff(dayjs(a.rawDate));
+        return new Date(b.rawDate) - new Date(a.rawDate);
       });
 
       setBookings(sorted);
@@ -145,6 +205,83 @@ const BookingManagement = () => {
 
   const hideNotification = () => {
     setNotification({ show: false, message: '' });
+  };
+
+  // Admin booking form handler
+  const handleAdminBookingSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.name || !formData.meeting_name || !formData.start_time || !formData.end_time || 
+        !formData.meeting_purpose || !formData.contact_number || !formData.email || 
+        !formData.team_category || !formData.room_id) {
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+
+    const mobileRegex = /^\d{10}$/;
+    if (!mobileRegex.test(formData.contact_number)) {
+      toast.error('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
+    if (formData.start_time >= formData.end_time) {
+      toast.error('End time must be after start time.');
+      return;
+    }
+
+    const selectedCategory = categories.find(cat => String(cat.id) === String(formData.team_category));
+    if (selectedCategory?.name === 'Nirmaan Teams' && !formData.nirmaan_text.trim()) {
+      toast.error('Please enter your Nirmaan team name.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const formattedDate = selectedDate.format('YYYY-MM-DD');
+      let teamName;
+      if (selectedCategory?.name === 'Nirmaan Teams') {
+        teamName = formData.nirmaan_text;
+      } else {
+        const t = teams.find(t => String(t.id) === String(formData.team));
+        teamName = t ? t.name : formData.team_sub_category;
+      }
+
+      const bookingData = {
+        ...formData,
+        date: formattedDate,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        team_sub_category: teamName,
+        nirmaan_text: formData.nirmaan_text || '',
+        status: 'confirmed' // Auto-confirm for admin bookings
+      };
+
+      const response = await axios.post('http://13.127.171.141:5000/api/create_browseroom', bookingData);
+      if (response.data) {
+        toast.success('Room booked successfully and auto-confirmed!');
+        setIsBookingOpen(false);
+        setFormData({
+          name: '', meeting_name: '', start_time: '', end_time: '', meeting_purpose: '', 
+          contact_number: '', email: '', team_category: '', team_sub_category: '', nirmaan_text: '', room_id: ''
+        });
+        setSelectedDate(dayjs());
+        // Refresh bookings list
+        await fetchBookings();
+      }
+    } catch (error) {
+      if (error.response?.data?.message) toast.error(error.response.data.message);
+      else if (error.response?.data?.status) toast.error(error.response.data.status);
+      else toast.error('Failed to book room. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleUpdateStatus = async (id, newStatus) => {
@@ -201,7 +338,10 @@ const BookingManagement = () => {
   });
 
   const getBookingsForDate = (date) => {
-    const dateStr = dayjs(date).format('YYYY-MM-DD');
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
     return filteredBookings.filter(booking => booking.rawDate === dateStr);
   };
 
@@ -278,6 +418,7 @@ const BookingManagement = () => {
       return newSet;
     });
   };
+
 
   const BookingCard = ({ booking }) => (
     <div className={`p-2 sm:p-3 rounded-lg border-l-4 ${
@@ -416,15 +557,29 @@ const BookingManagement = () => {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
     const weekBookings = getBookingsForWeek(startOfWeek);
-    // In renderWeekView, update the hours array:
-    const hours = Array.from({ length: 24 }, (_, i) => i); // 0 (12am) to 23 (11pm)
+    const hours = Array.from({ length: 24 }, (_, i) => i);
 
-    // Helper to get bookings for a day and hour
-    const getBookingsForDayHour = (date, hour) => {
-      return (weekBookings.find(d => d.date.toDateString() === date.toDateString())?.bookings || []).filter(b => {
-        const [h] = b.rawStartTime ? b.rawStartTime.split(":") : [null];
-        return parseInt(h, 10) === hour;
-      });
+    const getBookingsForDay = (date) => {
+      return weekBookings.find(d => d.date.toDateString() === date.toDateString())?.bookings || [];
+    };
+
+    const calculateBookingPosition = (booking) => {
+      const [startHour, startMinute] = booking.rawStartTime.split(':').map(Number);
+      const [endHour, endMinute] = booking.rawEndTime.split(':').map(Number);
+      
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+      const duration = endMinutes - startMinutes;
+      
+      // Position from top (in percentage)
+      const topPercent = (startMinutes / (24 * 60)) * 100;
+      const heightPercent = (duration / (24 * 60)) * 100;
+      
+      return {
+        top: `${topPercent}%`,
+        height: `${heightPercent}%`,
+        duration: duration
+      };
     };
 
     return (
@@ -434,12 +589,13 @@ const BookingManagement = () => {
           {weekBookings.map(({ date }, idx) => {
             const isToday = date.toDateString() === new Date().toDateString();
             return (
-              <div key={idx} className={`text-center p-2 border-r last:border-r-0 font-medium ${isToday ? 'text-blue-600 bg-blue-50' : 'text-gray-700 bg-gray-100'}`}>{date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</div>
+              <div key={idx} className={`text-center p-2 border-r last:border-r-0 font-medium ${isToday ? 'text-blue-600 bg-blue-50' : 'text-gray-700 bg-gray-100'}`}>
+                {date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
+              </div>
             );
           })}
         </div>
         <div className="min-w-[900px] grid grid-cols-8">
-          {/* Time slots */}
           <div className="flex flex-col border-r">
             {hours.map(hour => (
               <div key={hour} className="h-16 border-b text-xs text-gray-400 flex items-start justify-end pr-2 pt-1">
@@ -447,36 +603,51 @@ const BookingManagement = () => {
               </div>
             ))}
           </div>
-          {/* Day columns */}
           {weekBookings.map(({ date }, dayIdx) => {
             const isToday = date.toDateString() === new Date().toDateString();
+            const dayBookings = getBookingsForDay(date);
+            
             return (
-              <div key={dayIdx} className={`flex flex-col border-r last:border-r-0 ${isToday ? 'bg-blue-50' : ''}`}> 
+              <div key={dayIdx} className={`relative flex flex-col border-r last:border-r-0 ${isToday ? 'bg-blue-50' : ''}`}> 
+                {/* Time grid background */}
                 {hours.map(hour => (
-                  <div key={hour} className="h-16 border-b relative">
-                    {getBookingsForDayHour(date, hour).map((booking, idx, arr) => (
-                      <div
-                        key={booking.id}
-                        className={`absolute left-1 right-1 text-xs rounded shadow flex items-center px-2 overflow-hidden cursor-pointer 
-                          ${booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800' :
-                            booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                            'bg-red-200 text-red-800'}
-                        `}
-                        style={{
-                          top: `calc(${idx * (100 / arr.length)}% + ${idx > 0 ? 2 : 0}px)`,
-                          height: `calc(${100 / arr.length}% - ${arr.length > 1 ? 2 : 0}px)`,
-                          bottom: 'auto',
-                          position: 'absolute',
-                          zIndex: 2
-                        }}
-                        title={booking.title}
-                        onClick={() => setSelectedBooking(booking)}
-                      >
+                  <div key={hour} className="h-16 border-b"></div>
+                ))}
+                
+                {/* Bookings positioned by actual time */}
+                {dayBookings.map((booking) => {
+                  const position = calculateBookingPosition(booking);
+                  return (
+                    <div
+                      key={booking.id}
+                      className={`absolute left-1 right-1 rounded shadow cursor-pointer px-2 py-1 overflow-hidden
+                        ${booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800 border-green-300' :
+                          booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800 border-yellow-300' :
+                          'bg-red-200 text-red-800 border-red-300'}
+                      `}
+                      style={{
+                        top: position.top,
+                        height: position.height,
+                        minHeight: '20px',
+                        zIndex: 10
+                      }}
+                      title={`${booking.title} - ${booking.time}`}
+                      onClick={() => setSelectedBooking(booking)}
+                    >
+                      <div className="text-xs font-medium truncate">
                         {booking.title}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                      <div className="text-xs opacity-75 truncate">
+                        {booking.time}
+                      </div>
+                      {booking.room && (
+                        <div className="text-xs opacity-75 truncate">
+                          {booking.room}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -487,33 +658,101 @@ const BookingManagement = () => {
 
   const renderDayView = () => {
     const dayBookings = getBookingsForDate(currentDate);
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+
+    const calculateBookingPosition = (booking) => {
+      const [startHour, startMinute] = booking.rawStartTime.split(':').map(Number);
+      const [endHour, endMinute] = booking.rawEndTime.split(':').map(Number);
+      
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+      const duration = endMinutes - startMinutes;
+      
+      // Position from top (in percentage)
+      const topPercent = (startMinutes / (24 * 60)) * 100;
+      const heightPercent = (duration / (24 * 60)) * 100;
+      
+      return {
+        top: `${topPercent}%`,
+        height: `${heightPercent}%`,
+        duration: duration
+      };
+    };
+
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-base sm:text-xl font-semibold mb-4 text-center sm:text-left break-words">{formatDate(currentDate)}</h2>
-        <div className="space-y-4">
-          {dayBookings.length > 0 ? (
-            dayBookings.map(booking => (
-              <div className="">
-                <DetailedBookingCard key={booking.id} booking={booking} onUpdateStatus={handleUpdateStatus} />
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="text-base sm:text-xl font-semibold text-center sm:text-left break-words">{formatDate(currentDate)}</h2>
+        </div>
+        <div className="flex">
+          {/* Time column */}
+          <div className="w-20 flex-shrink-0">
+            <div className="h-16 border-b"></div>
+            {hours.map(hour => (
+              <div key={hour} className="h-16 border-b text-xs text-gray-400 flex items-start justify-end pr-2 pt-1">
+                {hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 text-sm sm:text-base">No bookings for this day</p>
-            </div>
-          )}
+            ))}
+          </div>
+          
+          {/* Day column */}
+          <div className="flex-1 relative">
+            {/* Time grid background */}
+            {hours.map(hour => (
+              <div key={hour} className="h-16 border-b"></div>
+            ))}
+            
+            {/* Bookings positioned by actual time */}
+            {dayBookings.length > 0 ? (
+              dayBookings.map((booking) => {
+                const position = calculateBookingPosition(booking);
+                return (
+                  <div
+                    key={booking.id}
+                    className={`absolute left-2 right-2 rounded shadow cursor-pointer px-3 py-2 overflow-hidden
+                      ${booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800 border-green-300' :
+                        booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800 border-yellow-300' :
+                        'bg-red-200 text-red-800 border-red-300'}
+                    `}
+                    style={{
+                      top: position.top,
+                      height: position.height,
+                      minHeight: '40px',
+                      zIndex: 10
+                    }}
+                    title={`${booking.title} - ${booking.time}`}
+                    onClick={() => setSelectedBooking(booking)}
+                  >
+                    <div className="font-medium truncate mb-1">
+                      {booking.title}
+                    </div>
+                    <div className="text-sm opacity-75 truncate mb-1">
+                      {booking.time}
+                    </div>
+                    {booking.room && (
+                      <div className="text-sm opacity-75 truncate">
+                        {booking.room}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 text-sm sm:text-base">No bookings for this day</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
   const renderAgendaView = () => {
-    const sortedBookings = [...filteredBookings].sort((a, b) => {
-      const dateA = dayjs(a.rawDate);
-      const dateB = dayjs(b.rawDate);
-      return dateA.diff(dateB);
-    });
+    const sortedBookings = [...filteredBookings].sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
     const groupedBookings = sortedBookings.reduce((groups, booking) => {
       const date = booking.rawDate;
       if (!groups[date]) {
@@ -528,7 +767,7 @@ const BookingManagement = () => {
           <div key={date} className="border-b last:border-b-0">
             <div className="bg-gray-50 px-4 sm:px-6 py-3 border-b">
               <h3 className="font-semibold text-gray-900 text-base sm:text-lg break-words">
-                {dayjs(date).format('dddd, MMMM D, YYYY')}
+                {new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </h3>
             </div>
             <div className="p-4 sm:p-6 space-y-4">
@@ -597,39 +836,49 @@ const BookingManagement = () => {
         />
       )}
       
-      <div className="mt-36 p-2 sm:p-4 md:p-8">
-        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:justify-between lg:items-center mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Booking Management</h1>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            <select
-              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex bg-white border border-gray-300 rounded-lg p-1 w-full sm:w-auto">
-                {['month', 'week', 'day', 'agenda'].map(view => (
-                  <button
-                    key={view}
-                    onClick={() => setCurrentView(view)}
-                    className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto ${
-                      currentView === view
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {view.charAt(0).toUpperCase() + view.slice(1)}
-                  </button>
-                ))}
+      <div className="mt-20">
+        <div className="mt-36 p-2 sm:p-4 md:p-8">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:justify-between lg:items-center mb-4 sm:mb-6">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Booking Management</h1>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <button
+                onClick={() => setIsBookingOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Book Room
+              </button>
+              <select
+                className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex bg-white border border-gray-300 rounded-lg p-1 w-full sm:w-auto">
+                  {['month', 'week', 'day', 'agenda'].map(view => (
+                    <button
+                      key={view}
+                      onClick={() => setCurrentView(view)}
+                      className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto ${
+                        currentView === view
+                          ? 'bg-blue-500 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {view.charAt(0).toUpperCase() + view.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
         {currentView !== 'agenda' && (
           <div className="flex items-center justify-between mb-6">
@@ -661,8 +910,11 @@ const BookingManagement = () => {
           </div>
         )}
 
-        {renderCurrentView()}
+          {renderCurrentView()}
+        </div>
       </div>
+      
+      {/* Legacy Booking Modal */}
       {selectedBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg w-[99vw] sm:w-[95vw] max-w-full sm:max-w-2xl p-2 sm:p-6 relative overflow-y-auto max-h-[90vh]">
@@ -676,6 +928,205 @@ const BookingManagement = () => {
               booking={selectedBooking} 
               onUpdateStatus={handleUpdateStatus}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Admin Booking Form Modal */}
+      {isBookingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={(e) => { if (e.target === e.currentTarget) setIsBookingOpen(false); }}>
+          <div className="bg-white rounded-lg shadow-lg w-[99vw] sm:w-[95vw] max-w-full sm:max-w-4xl p-2 sm:p-6 relative overflow-y-auto max-h-[90vh]">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl font-bold"
+              onClick={() => setIsBookingOpen(false)}
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-bold mb-3">Admin Room Booking</h2>
+
+            <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-sm text-green-800">
+                <strong>Admin Booking:</strong> This booking will be automatically confirmed. No date restrictions apply.
+              </p>
+            </div>
+
+            <form onSubmit={handleAdminBookingSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Name *</label>
+                  <input 
+                    type="text" 
+                    name="name" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.name} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Meeting Name *</label>
+                  <input 
+                    type="text" 
+                    name="meeting_name" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.meeting_name} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, meeting_name: e.target.value }))} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Date *</label>
+                  <input 
+                    type="date" 
+                    name="date"
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={selectedDate.format('YYYY-MM-DD')}
+                    onChange={(e) => setSelectedDate(dayjs(e.target.value))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Room * ({rooms.length} rooms loaded)</label>
+                  <select 
+                    name="room_id" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.room_id} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, room_id: e.target.value }))} 
+                    required
+                  >
+                    <option value="" disabled>Select room...</option>
+                    {rooms.map(room => (
+                      <option key={room.id} value={room.id}>{room.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Start Time *</label>
+                  <select 
+                    name="start_time" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.start_time} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))} 
+                    required
+                  >
+                    <option value="">Select start time</option>
+                    {Array.from({ length: 24 }, (_, h) => h).flatMap(h => [0,15,30,45].map(m => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)).map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">End Time *</label>
+                  <select 
+                    name="end_time" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.end_time} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))} 
+                    required
+                  >
+                    <option value="">Select end time</option>
+                    {Array.from({ length: 24 }, (_, h) => h).flatMap(h => [0,15,30,45].map(m => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)).map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Contact Number *</label>
+                  <input 
+                    type="text" 
+                    name="contact_number" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.contact_number} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, contact_number: e.target.value }))} 
+                    placeholder="10-digit mobile number"
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-left mb-1">Email ID *</label>
+                  <input 
+                    type="email" 
+                    name="email" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={formData.email} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} 
+                    required 
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-left mb-1">Meeting Purpose *</label>
+                  <textarea 
+                    name="meeting_purpose" 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" 
+                    value={formData.meeting_purpose} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, meeting_purpose: e.target.value }))} 
+                    rows="3" 
+                    required 
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-left mb-1">Team/Company/Office/Clubs * ({categories.length} categories loaded)</label>
+                  <select 
+                    name="team_category" 
+                    value={formData.team_category} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, team_category: e.target.value, team_sub_category: '', team: '', nirmaan_text: '' }))} 
+                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    required
+                  >
+                    <option value="" disabled>Select category...</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {formData.team_category && teams.length > 0 && categories.find(cat => String(cat.id) === String(formData.team_category))?.name !== 'Nirmaan Teams' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-left mb-1">Team</label>
+                    <select 
+                      name="team" 
+                      value={formData.team} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, team: e.target.value, team_sub_category: (teams.find(t => String(t.id) === e.target.value)?.name) || '' }))} 
+                      className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select team...</option>
+                      {teams.map(team => (<option key={team.id} value={team.id}>{team.name}</option>))}
+                    </select>
+                  </div>
+                )}
+                {formData.team_category && categories.find(cat => String(cat.id) === String(formData.team_category))?.name === 'Nirmaan Teams' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-left mb-1">Team Name *</label>
+                    <input 
+                      type="text" 
+                      name="nirmaan_text" 
+                      placeholder="Enter your Nirmaan team name..." 
+                      className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      value={formData.nirmaan_text} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, nirmaan_text: e.target.value }))} 
+                      required 
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-4">
+                <button 
+                  type="button" 
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors" 
+                  onClick={() => setIsBookingOpen(false)} 
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 transition-colors" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Creating Booking...' : 'Create Booking (Auto-Confirm)'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
