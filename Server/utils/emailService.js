@@ -132,19 +132,48 @@ const bookingRejectedTemplate = (booking) => {
 `;
 };
 
-// Reminder email template
-const bookingReminderTemplate = (booking) => {
+// Enhanced reminder email template with different time intervals
+const bookingReminderTemplate = (booking, interval) => {
   const formattedDate = formatDateForEmail(booking.date);
   const formattedStartTime = formatTimeForEmail(booking.start_time);
   const formattedEndTime = formatTimeForEmail(booking.end_time);
   
+  // Different colors and messages based on reminder time
+  let color, title, message, urgency;
+  
+  switch(interval.type) {
+    case '1hour':
+      color = '#3498db';
+      title = 'Meeting Reminder - 1 Hour';
+      message = 'This is a friendly reminder that your meeting is scheduled to start in 1 hour.';
+      urgency = 'You have plenty of time to prepare.';
+      break;
+    case '30min':
+      color = '#f39c12';
+      title = 'Meeting Reminder - 30 Minutes';
+      message = 'This is a friendly reminder that your meeting is scheduled to start in 30 minutes.';
+      urgency = 'Please start preparing for your meeting.';
+      break;
+    case '10min':
+      color = '#e74c3c';
+      title = 'Meeting Reminder - 10 Minutes';
+      message = 'This is a friendly reminder that your meeting is scheduled to start in 10 minutes.';
+      urgency = 'Please head to the meeting room now!';
+      break;
+    default:
+      color = '#f39c12';
+      title = 'Meeting Reminder';
+      message = 'This is a friendly reminder about your upcoming meeting.';
+      urgency = 'Please prepare for your meeting.';
+  }
+  
   return `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #f39c12;">Meeting Reminder - 10 Minutes</h2>
+    <h2 style="color: ${color};">${title}</h2>
     <p>Dear ${booking.name},</p>
-    <p>This is a friendly reminder that your meeting <b>${booking.meeting_name}</b> is scheduled to start in <b>10 minutes</b>.</p>
+    <p>${message}</p>
     
-    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid ${color};">
       <h3 style="color: #2c3e50; margin-top: 0;">Meeting Details:</h3>
       <p><strong>Meeting:</strong> ${booking.meeting_name}</p>
       <p><strong>Room:</strong> ${booking.booked_room_name || 'Room not specified'}</p>
@@ -154,8 +183,14 @@ const bookingReminderTemplate = (booking) => {
       <p><strong>Purpose:</strong> ${booking.meeting_purpose}</p>
     </div>
     
+    <div style="background-color: ${color === '#e74c3c' ? '#fee' : color === '#f39c12' ? '#fff3cd' : '#e3f2fd'}; padding: 10px; border-radius: 5px; margin: 15px 0;">
+      <p style="color: ${color}; font-weight: bold; margin: 0;">
+        ${urgency}
+      </p>
+    </div>
+    
     <p style="color: #7f8c8d; font-size: 0.9em;">
-      Please make sure to arrive on time. If you need to cancel or reschedule, please contact the admin as soon as possible.
+      If you need to cancel or reschedule, please contact the admin as soon as possible.
     </p>
     
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
@@ -198,21 +233,24 @@ const sendBookingStatusEmail = async (email, status, booking) => {
   }
 };
 
-// Function to send reminder email
-const sendReminderEmail = async (email, booking) => {
+// Enhanced function to send reminder email with different intervals
+const sendReminderEmail = async (email, booking, interval) => {
+  const subject = `Meeting Reminder: ${booking.meeting_name} starts in ${interval.minutes} minutes`;
+  const html = bookingReminderTemplate(booking, interval);
+  
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: `Meeting Reminder: ${booking.meeting_name} starts in 10 minutes`,
-    html: bookingReminderTemplate(booking)
+    subject,
+    html
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Reminder email sent:', info.messageId);
+    console.log(`${interval.minutes}-minute reminder email sent:`, info.messageId);
     return true;
   } catch (error) {
-    console.error('Error sending reminder email:', error);
+    console.error(`Error sending ${interval.minutes}-minute reminder email:`, error);
     throw error;
   }
 };

@@ -17,6 +17,14 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Start reminder system (checks every minute and sends emails 10 minutes before meetings)
+try {
+  require('./reminderSystem');
+  console.log('Reminder system initialized from app.js');
+} catch (e) {
+  console.warn('Reminder system not initialized:', e.message);
+}
+
 // Database configuration
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
@@ -127,13 +135,13 @@ const startServer = (port) => {
 app.use('/api', routes);
 
 // Mount Google routes at /api/google
-try {
-  const googleRoutes = require('./routes/googleCalendarRoutes');
-  app.use('/api/google', googleRoutes);
-  console.log('Google routes mounted at /api/google');
-} catch (e) {
-  console.warn('Google routes not mounted:', e.message);
-}
+// try {
+//   const googleRoutes = require('./routes/googleCalendarRoutes');
+//   app.use('/api/google', googleRoutes);
+//   console.log('Google routes mounted at /api/google');
+// } catch (e) {
+//   console.warn('Google routes not mounted:', e.message);
+// }
 
 
 // Start the server

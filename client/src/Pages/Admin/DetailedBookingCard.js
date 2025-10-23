@@ -1,7 +1,7 @@
 import React from 'react';
-import { User, Clock, MapPin, Phone, Mail, Target, Check, X } from 'lucide-react';
+import { User, Clock, MapPin, Phone, Mail, Target, Check, X, Trash2 } from 'lucide-react';
 
-const DetailedBookingCard = ({ booking, onUpdateStatus }) => (
+const DetailedBookingCard = ({ booking, onUpdateStatus, onDeleteBooking, isAdminBooking }) => (
   <div className={`p-4 rounded-lg border-l-4 ${
     booking.status.toLowerCase() === 'confirmed' ? 'border-green-500 bg-green-50' :
     booking.status.toLowerCase() === 'pending' ? 'border-yellow-500 bg-yellow-50' :
@@ -57,37 +57,51 @@ const DetailedBookingCard = ({ booking, onUpdateStatus }) => (
             {booking.status}
           </span>
           
-          {onUpdateStatus && (
-            <div className="flex gap-2">
-              {booking.status.toLowerCase() === 'pending' && (
-                <>
-                  <button
-                    onClick={() => onUpdateStatus(booking.id, 'confirmed')}
-                    className="flex items-center px-3 py-1 bg-green-500 text-white text-xs rounded-md hover:bg-green-600 transition-colors"
-                  >
-                    <Check className="w-3 h-3 mr-1" />
-                    Confirm
-                  </button>
+          <div className="flex gap-2">
+            {onUpdateStatus && (
+              <>
+                {booking.status.toLowerCase() === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => onUpdateStatus(booking.id, 'confirmed')}
+                      className="flex items-center px-3 py-1 bg-green-500 text-white text-xs rounded-md hover:bg-green-600 transition-colors"
+                    >
+                      <Check className="w-3 h-3 mr-1" />
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => onUpdateStatus(booking.id, 'rejected')}
+                      className="flex items-center px-3 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Reject
+                    </button>
+                  </>
+                )}
+                {booking.status.toLowerCase() === 'confirmed' && (
                   <button
                     onClick={() => onUpdateStatus(booking.id, 'rejected')}
                     className="flex items-center px-3 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 transition-colors"
                   >
                     <X className="w-3 h-3 mr-1" />
-                    Reject
+                    Cancel
                   </button>
-                </>
-              )}
-              {booking.status.toLowerCase() === 'confirmed' && (
-                <button
-                  onClick={() => onUpdateStatus(booking.id, 'rejected')}
-                  className="flex items-center px-3 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-3 h-3 mr-1" />
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
+                )}
+              </>
+            )}
+            
+            {/* Delete Button - Only visible for admin's own bookings */}
+            {onDeleteBooking && isAdminBooking && (
+              <button
+                onClick={() => onDeleteBooking(booking.id)}
+                className="flex items-center px-3 py-1 bg-gray-600 text-white text-xs rounded-md hover:bg-gray-700 transition-colors"
+                title="Permanently delete this booking"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Delete
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

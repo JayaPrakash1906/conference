@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, X, Check, CheckCircle2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User, Phone, Mail, Target, Plus } from 'lucide-react';
+import { Filter, X, Check, CheckCircle2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User, Phone, Mail, Target, Plus, Trash2 } from 'lucide-react';
 import Navbar from '../../components/AdminNavbar';
 
 import axios from 'axios';
@@ -46,6 +46,7 @@ const BookingManagement = () => {
   const [expandedDays, setExpandedDays] = useState(new Set());
   const [categoryMap, setCategoryMap] = useState({});
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   
   // Booking form states
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -332,6 +333,66 @@ const BookingManagement = () => {
     }
   };
 
+  const handleDeleteBooking = async (id) => {
+    // Get current admin email from stored user session
+    const adminEmail = (JSON.parse(localStorage.getItem('user'))?.email) || 'admin@example.com';
+    
+    // Find the booking to check ownership
+    const booking = bookings.find(b => b.id === id);
+    if (!booking) {
+      showNotification('Booking not found.');
+      return;
+    }
+    
+    // Check if admin owns this booking
+    if (booking.email !== adminEmail) {
+      showNotification('You can only delete your own bookings.');
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to permanently delete this booking? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const response = await axios.delete(`http://13.127.171.141:5000/api/delete_browseroom/${id}?email=${adminEmail}`);
+
+      if (!response.data) {
+        throw new Error('No response from server');
+      }
+
+      // Remove booking from local state
+      setBookings(prevBookings => prevBookings.filter(booking => booking.id !== id));
+      
+      // Close modal if this booking was selected
+      if (selectedBooking && selectedBooking.id === id) {
+        closeBookingModal();
+      }
+
+      showNotification('Booking permanently deleted successfully.');
+      
+      // Refresh bookings to ensure consistency
+      setTimeout(() => {
+        fetchBookings();
+      }, 1000);
+    } catch (error) {
+      let errorMessage = "Failed to delete booking. ";
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+      } else if (!error.response) {
+        errorMessage = 'No response from server. Please try again later.';
+      }
+      showNotification(errorMessage);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const filteredBookings = bookings.filter(booking => {
     if (statusFilter === 'all') return true;
     return booking.status.toLowerCase() === statusFilter.toLowerCase();
@@ -419,6 +480,12 @@ const BookingManagement = () => {
     });
   };
 
+  // Helper function to check if current admin owns a booking
+  const isAdminBooking = (booking) => {
+    const adminEmail = (JSON.parse(localStorage.getItem('user'))?.email) || 'admin@example.com';
+    return booking.email === adminEmail;
+  };
+
 
   const BookingCard = ({ booking }) => (
     <div className={`p-2 sm:p-3 rounded-lg border-l-4 ${
@@ -478,6 +545,17 @@ const BookingManagement = () => {
             >
               <X className="w-3 h-3 mr-1" />
               {statusUpdatingId === booking.id ? 'Cancelling...' : 'Cancel'}
+            </button>
+          )}
+          {isAdminBooking(booking) && (
+            <button
+              onClick={() => handleDeleteBooking(booking.id)}
+              className="flex items-center text-gray-600 hover:text-gray-900 text-xs w-full sm:w-auto disabled:opacity-50"
+              disabled={deletingId === booking.id}
+              title="Permanently delete this booking"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              {deletingId === booking.id ? 'Deleting...' : 'Delete'}
             </button>
           )}
         </div>
@@ -773,7 +851,7 @@ const BookingManagement = () => {
             <div className="p-4 sm:p-6 space-y-4">
               {bookings.map(booking => (
                 <div className="">
-                  <DetailedBookingCard key={booking.id} booking={booking} onUpdateStatus={handleUpdateStatus} />
+                  <DetailedBookingCard key={booking.id} booking={booking} onUpdateStatus={handleUpdateStatus} onDeleteBooking={handleDeleteBooking} isAdminBooking={isAdminBooking(booking)} />
                 </div>
               ))}
             </div>
@@ -927,6 +1005,8 @@ const BookingManagement = () => {
             <DetailedBookingCard 
               booking={selectedBooking} 
               onUpdateStatus={handleUpdateStatus}
+              onDeleteBooking={handleDeleteBooking}
+              isAdminBooking={isAdminBooking(selectedBooking)}
             />
           </div>
         </div>

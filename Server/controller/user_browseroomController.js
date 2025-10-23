@@ -5,6 +5,13 @@ const { sendBookingStatusEmail } = require('../utils/emailService');
 const CreateBrowse = async (req, res) => {
     const {name, meeting_name, start_time, end_time, date, meeting_purpose, contact_number, email, team_category, team_sub_category, room_id, nirmaan_text, status} = req.body;
 
+    // Debug logging - see what's actually being received
+    console.log('=== BOOKING CREATION REQUEST ===');
+    console.log('Full request body:', req.body);
+    console.log('Status received:', status);
+    console.log('Status type:', typeof status);
+    console.log('================================');
+
     // Basic validation
     if (!name || !meeting_name || !start_time || !end_time || !date || !meeting_purpose || !contact_number || !email || !team_category || !room_id) {
         return res.status(400).json({ status: 'Check all fields' });
@@ -13,49 +20,131 @@ const CreateBrowse = async (req, res) => {
     // Get user from request (assuming it's set by auth middleware)
     const userEmail = req.query.email || req.body.email;
     
-    // For admin bookings, skip email validation as admin can book for anyone
-    const isAdminBooking = status === 'confirmed';
-    
-    // Validate that the booking email matches the logged-in user's email (only for non-admin bookings)
-    if (!isAdminBooking && email !== userEmail) {
-        return res.status(403).json({ 
-            status: 'Forbidden', 
-            message: 'You can only make bookings with your own email address' 
-        });
-    }
-
     try {
+        // Check user's role from database for security
+        const { Pool } = require('pg');
+        const pool = new Pool({
+            user: process.env.DB_USER || 'postgres',
+            host: process.env.DB_HOST || 'localhost',
+            database: process.env.DB_NAME || 'calendar',
+            password: process.env.DB_PASSWORD || 'root',
+            port: process.env.DB_PORT || 5432,
+        });
+
+        const userRoleCheck = await pool.query(
+            'SELECT role FROM users WHERE email = $1', 
+            [userEmail]
+        );
+
+        const userRole = userRoleCheck.rows[0]?.role || 'user';
+        const isAdmin = userRole === 'admin';
+        
+        console.log(`User ${userEmail} role: ${userRole}, isAdmin: ${isAdmin}`);
+        
+        // Determine final status based on role and request
+        let finalStatus;
+        if (isAdmin) {
+            // Admin bookings are automatically confirmed unless explicitly set to pending
+            if (status === 'pending') {
+                finalStatus = 'pending';
+                console.log('Admin explicitly chose pending booking');
+            } else {
+                finalStatus = 'confirmed';
+                console.log('Admin creating auto-confirmed booking');
+            }
+        } else {
+            // Users can only create pending bookings
+            finalStatus = 'pending';
+            console.log('User creating pending booking (requires approval)');
+        }
+        
+        // For admin bookings, allow booking for any email
+        // For user bookings, validate email matches logged-in user
+        if (!isAdmin && email !== userEmail) {
+            await pool.end();
+            return res.status(403).json({ 
+                status: 'Forbidden', 
+                message: 'You can only make bookings with your own email address' 
+            });
+        }
+
+        await pool.end();
+        
         // For Nirmaan Teams, use nirmaan_text as team_sub_category if provided
         let finalTeamSubCategory = team_sub_category;
         if (nirmaan_text && nirmaan_text.trim()) {
             finalTeamSubCategory = nirmaan_text.trim();
         }
         
-        // Debug logging
-        console.log('Admin booking status being sent:', status);
-        console.log('Is admin booking:', status === 'confirmed');
+        // Create booking with role-based status
+        console.log(`Creating booking with final status: ${finalStatus}`);
         
-        // Create the booking with the specified status
-        const result = await CreateBrowseModel(
-            name,
-            meeting_name,
-            start_time,
-            end_time,
-            date,
-            meeting_purpose,
-            contact_number,
-            email,
-            team_category,
-            finalTeamSubCategory,
-            room_id,
-            nirmaan_text,
-            status || 'pending'
-        );
-        
-        console.log('Booking created with status:', result.status);
+        let result;
+        if (finalStatus === 'confirmed') {
+            // Create booking as pending first (to avoid DEFAULT constraint)
+            result = await CreateBrowseModel(
+                name,
+                meeting_name,
+                start_time,
+                end_time,
+                date,
+                meeting_purpose,
+                contact_number,
+                email,
+                team_category,
+                finalTeamSubCategory,
+                room_id,
+                nirmaan_text,
+                'pending'
+            );
+            
+            console.log('Booking created as pending, updating to confirmed...');
+            
+            // Immediately update to confirmed using raw SQL to bypass any constraints
+            const { Pool } = require('pg');
+            const pool = new Pool({
+                user: process.env.DB_USER || 'postgres',
+                host: process.env.DB_HOST || 'localhost',
+                database: process.env.DB_NAME || 'calendar',
+                password: process.env.DB_PASSWORD || 'root',
+                port: process.env.DB_PORT || 5432,
+            });
+            
+            const updateResult = await pool.query(
+                'UPDATE booking SET status = $1 WHERE id = $2 RETURNING *',
+                ['confirmed', result.id]
+            );
+            
+            if (updateResult.rows.length > 0) {
+                result = updateResult.rows[0];
+                console.log('Booking updated to confirmed:', result.status);
+            } else {
+                console.log('Warning: Could not update booking to confirmed status');
+            }
+            
+            await pool.end();
+        } else {
+            // Create pending booking
+            result = await CreateBrowseModel(
+                name,
+                meeting_name,
+                start_time,
+                end_time,
+                date,
+                meeting_purpose,
+                contact_number,
+                email,
+                team_category,
+                finalTeamSubCategory,
+                room_id,
+                nirmaan_text,
+                finalStatus
+            );
+            console.log('Pending booking created:', result.status);
+        }
 
-        // Auto-send confirmation email for admin bookings (confirmed status)
-        if (status === 'confirmed') {
+        // Auto-send confirmation email for confirmed bookings
+        if (finalStatus === 'confirmed') {
             try {
                 // Get the room name for the email
                 const { Pool } = require('pg');
@@ -63,8 +152,8 @@ const CreateBrowse = async (req, res) => {
                     user: process.env.DB_USER || 'postgres',
                     host: process.env.DB_HOST || 'localhost',
                     database: process.env.DB_NAME || 'calendar',
-                    password: process.env.DB_PASSWORD || '5432',
-                    port: process.env.DB_PORT || 5001,
+                    password: process.env.DB_PASSWORD || 'root',
+                    port: process.env.DB_PORT || 5432,
                 });
 
                 const roomQuery = await pool.query('SELECT name FROM rooms WHERE id = $1', [room_id]);
@@ -219,14 +308,46 @@ const DeleteBrowse = async (req, res) => {
     }
 
     try {
+        // Check if requester is admin
+        const { Pool } = require('pg');
+        const pool = new Pool({
+            user: process.env.DB_USER || 'postgres',
+            host: process.env.DB_HOST || 'localhost',
+            database: process.env.DB_NAME || 'calendar',
+            password: process.env.DB_PASSWORD || 'root',
+            port: process.env.DB_PORT || 5432,
+        });
+
+        const userRoleCheck = await pool.query(
+            'SELECT role FROM users WHERE email = $1', 
+            [requesterEmail]
+        );
+
+        const userRole = userRoleCheck.rows[0]?.role || 'user';
+        const isAdmin = userRole === 'admin';
+        
+        await pool.end();
+
         const booking = await GetBookingById(id);
         if (!booking) {
             return res.status(404).json({ error: "Booking not found" });
         }
+
+        // Both admin and users can only delete their own bookings
         if (String(booking.email).toLowerCase() !== String(requesterEmail).toLowerCase()) {
-            return res.status(403).json({ error: "You can only delete your own bookings" });
+            return res.status(403).json({ 
+                error: "You can only delete your own bookings." 
+            });
         }
 
+        console.log(`${isAdmin ? 'Admin' : 'User'} ${requesterEmail} deleting booking ${id} (owner: ${booking.email})`);
+        console.log('Delete permission check:', {
+            isAdmin,
+            requesterEmail,
+            bookingOwner: booking.email,
+            canDelete: String(booking.email).toLowerCase() === String(requesterEmail).toLowerCase()
+        });
+        
         const result = await DeleteBrowseModel(id);
         return res.status(200).json(result);
     } catch (err) {
