@@ -22,7 +22,7 @@ const UserNavbar = () => {
         {/* Left - Logos */}
         <div
           className="flex items-center cursor-pointer"
-          onClick={() => navigate('/user/browse_room')}
+          onClick={() => navigate('/user/calendar')}
         >
           <img src={Img1} className="h-10 w-auto ml-2 md:h-12 md:ml-4" alt="IITM Logo" />
           <img src={Img2} className="h-12 w-auto ml-3 md:h-16 md:ml-5" alt="OIE Logo" />
@@ -60,7 +60,7 @@ const UserNavbar = () => {
 
       {/* Navigation Links (desktop) */}
       <div className="hidden md:flex items-center space-x-4 ml-6 py-2">
-        <a
+        {/* <a
           href="/user/browse_room"
           className={`transition hover:text-blue-500 ${
             window.location.pathname === '/user/browse_room'
@@ -69,6 +69,16 @@ const UserNavbar = () => {
           }`}
         >
           Browse Rooms
+        </a> */}
+        <a
+          href="/user/calendar"
+          className={`transition hover:text-blue-500 ${
+            window.location.pathname === '/user/calendar'
+              ? 'text-blue-500 font-semibold'
+              : 'text-gray-600'
+          }`}
+        >
+          Calendar View
         </a>
         <a
           href="/user/my_booking"
@@ -80,23 +90,14 @@ const UserNavbar = () => {
         >
           My Bookings
         </a>
-        <a
-          href="/user/calendar"
-          className={`transition hover:text-blue-500 ${
-            window.location.pathname === '/user/calendar'
-              ? 'text-blue-500 font-semibold'
-              : 'text-gray-600'
-          }`}
-        >
-          Calendar View
-        </a>
+        
       </div>
 
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-white shadow-lg border-t">
           <div className="flex flex-col px-4 py-2 space-y-2">
-            <a
+            {/* <a
               href="/user/browse_room"
               className={`transition hover:text-blue-500 ${
                 window.location.pathname === '/user/browse_room'
@@ -106,6 +107,17 @@ const UserNavbar = () => {
               onClick={() => setMenuOpen(false)}
             >
               Browse Rooms
+            </a> */}
+            <a
+              href="/user/calendar"
+              className={`transition hover:text-blue-500 ${
+                window.location.pathname === '/user/calendar'
+                  ? 'text-blue-500 font-semibold'
+                  : 'text-gray-600'
+              }`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Calendar View
             </a>
             <a
               href="/user/my_booking"
@@ -118,17 +130,7 @@ const UserNavbar = () => {
             >
               My Bookings
             </a>
-            <a
-              href="/user/calendar"
-              className={`transition hover:text-blue-500 ${
-                window.location.pathname === '/user/calendar'
-                  ? 'text-blue-500 font-semibold'
-                  : 'text-gray-600'
-              }`}
-              onClick={() => setMenuOpen(false)}
-            >
-              Calendar View
-            </a>
+            
             <div className="border-t my-2"></div>
             <div className="flex items-center justify-between w-full mt-2 gap-2">
               <div className="flex items-center gap-2 min-w-0">

@@ -23,7 +23,7 @@ const AdminNavbar = () => {
         {/* Left - Logos */}
         <div
           className="flex items-center cursor-pointer"
-          onClick={() => navigate('/admin/room')}
+          onClick={() => navigate('/admin/book')}
         >
           <img src={Img1} className="h-10 w-auto ml-2 md:h-12 md:ml-4" alt="IITM Logo" />
           <img src={Img2} className="h-12 w-auto ml-3 md:h-16 md:ml-5" alt="OIE Logo" />
@@ -62,7 +62,7 @@ const AdminNavbar = () => {
 
       {/* Navigation Links (desktop) */}
       <div className="hidden md:flex items-center space-x-4 ml-6 mt-2 pb-2">
-        <a href="/admin/room" className={`transition hover:text-blue-500 ${ location.pathname === '/admin/room'? 'text-blue-500 font-semibold': 'text-gray-600'}`}>Room Management</a>
+        {/* <a href="/admin/room" className={`transition hover:text-blue-500 ${ location.pathname === '/admin/room'? 'text-blue-500 font-semibold': 'text-gray-600'}`}>Room Management</a> */}
         <a href="/admin/book" className={`transition hover:text-blue-500 ${ location.pathname === '/admin/book'? 'text-blue-500 font-semibold': 'text-gray-600' }`}>Booking Management</a>
         <a href="/admin/teams-management" className={`transition hover:text-blue-500 ${ location.pathname === '/admin/teams-management'? 'text-blue-500 font-semibold': 'text-gray-600' }`}>Teams Management</a>
       </div>
@@ -71,13 +71,13 @@ const AdminNavbar = () => {
       {menuOpen && (
         <div className="md:hidden bg-white shadow-lg border-t">
           <div className="flex flex-col px-4 py-2 space-y-2">
-            <a
+            {/* <a
               href="/admin/room"
               className={`transition hover:text-blue-500 ${ location.pathname === '/admin/room'? 'text-blue-500 font-semibold': 'text-gray-600'}`}
               onClick={() => setMenuOpen(false)}
             >
               Room Management
-            </a>
+            </a> */}
             <a
               href="/admin/book"
               className={`transition hover:text-blue-500 ${ location.pathname === '/admin/book'? 'text-blue-500 font-semibold': 'text-gray-600'}`}

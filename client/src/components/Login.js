@@ -28,7 +28,7 @@ const Login = () => {
       if (user.role === 'admin') {
         navigate('/admin/room');
       } else {
-        navigate('/user/browse_room');
+        navigate('/user/calendar');
       }
     } else if (user) {
       // Session expired
@@ -54,7 +54,12 @@ const Login = () => {
         // Show success message
         toast.success('Login successful!');
         
-        navigate('/admin/room'); // or navigate('/user/browse_room');
+        // Navigate based on user role
+        if (response.data.user.role === 'admin') {
+          navigate('/admin/book');
+        } else {
+          navigate('/user/calendar');
+        }
       }
     } catch (error) {
       console.error('Login error:', error, error.response);

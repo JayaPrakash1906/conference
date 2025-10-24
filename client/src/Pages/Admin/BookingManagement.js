@@ -264,7 +264,9 @@ const BookingManagement = () => {
         status: 'confirmed' // Auto-confirm for admin bookings
       };
 
-      const response = await axios.post('http://13.127.171.141:5000/api/create_browseroom', bookingData);
+      // Get admin email from localStorage
+      const adminEmail = JSON.parse(localStorage.getItem('user'))?.email;
+      const response = await axios.post(`http://13.127.171.141:5000/api/create_browseroom?email=${adminEmail}`, bookingData);
       if (response.data) {
         toast.success('Room booked successfully and auto-confirmed!');
         setIsBookingOpen(false);
