@@ -40,6 +40,7 @@ const CreateBrowse = async (req, res) => {
         const isAdmin = userRole === 'admin';
         
         console.log(`User ${userEmail} role: ${userRole}, isAdmin: ${isAdmin}`);
+        console.log(`Request status: ${status}`);
         
         // Determine final status based on role and request
         let finalStatus;
@@ -57,6 +58,8 @@ const CreateBrowse = async (req, res) => {
             finalStatus = 'pending';
             console.log('User creating pending booking (requires approval)');
         }
+        
+        console.log(`Final status determined: ${finalStatus}`);
         
         // For admin bookings, allow booking for any email
         // For user bookings, validate email matches logged-in user
@@ -79,69 +82,24 @@ const CreateBrowse = async (req, res) => {
         // Create booking with role-based status
         console.log(`Creating booking with final status: ${finalStatus}`);
         
-        let result;
-        if (finalStatus === 'confirmed') {
-            // Create booking as pending first (to avoid DEFAULT constraint)
-            result = await CreateBrowseModel(
-                name,
-                meeting_name,
-                start_time,
-                end_time,
-                date,
-                meeting_purpose,
-                contact_number,
-                email,
-                team_category,
-                finalTeamSubCategory,
-                room_id,
-                nirmaan_text,
-                'pending'
-            );
-            
-            console.log('Booking created as pending, updating to confirmed...');
-            
-            // Immediately update to confirmed using raw SQL to bypass any constraints
-            const { Pool } = require('pg');
-            const pool = new Pool({
-                user: process.env.DB_USER || 'postgres',
-                host: process.env.DB_HOST || 'localhost',
-                database: process.env.DB_NAME || 'calendar',
-                password: process.env.DB_PASSWORD || 'root',
-                port: process.env.DB_PORT || 5432,
-            });
-            
-            const updateResult = await pool.query(
-                'UPDATE booking SET status = $1 WHERE id = $2 RETURNING *',
-                ['confirmed', result.id]
-            );
-            
-            if (updateResult.rows.length > 0) {
-                result = updateResult.rows[0];
-                console.log('Booking updated to confirmed:', result.status);
-            } else {
-                console.log('Warning: Could not update booking to confirmed status');
-            }
-            
-            await pool.end();
-        } else {
-            // Create pending booking
-            result = await CreateBrowseModel(
-                name,
-                meeting_name,
-                start_time,
-                end_time,
-                date,
-                meeting_purpose,
-                contact_number,
-                email,
-                team_category,
-                finalTeamSubCategory,
-                room_id,
-                nirmaan_text,
-                finalStatus
-            );
-            console.log('Pending booking created:', result.status);
-        }
+        // Create booking with the correct status directly
+        const result = await CreateBrowseModel(
+            name,
+            meeting_name,
+            start_time,
+            end_time,
+            date,
+            meeting_purpose,
+            contact_number,
+            email,
+            team_category,
+            finalTeamSubCategory,
+            room_id,
+            nirmaan_text,
+            finalStatus
+        );
+        
+        console.log(`Booking created with status: ${finalStatus}`);
 
         // Auto-send confirmation email for confirmed bookings
         if (finalStatus === 'confirmed') {

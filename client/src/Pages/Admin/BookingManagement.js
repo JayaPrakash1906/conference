@@ -140,7 +140,7 @@ const BookingManagement = () => {
         return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
       };
 
-      const transformedBookings = response.data.rows.map(booking => {
+        const transformedBookings = response.data.rows.map(booking => {
         const formattedTime = `${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}`;
 
         // Helper to check if a value is a number
@@ -175,7 +175,8 @@ const BookingManagement = () => {
           team_sub_category: booking.team_sub_category,
           contactNumber: booking.contact_number,
           email: booking.email,
-          rawDate: rawDateKey
+          rawDate: rawDateKey,
+          creator_role: booking.creator_role || 'user'
         };
       });
 
@@ -266,6 +267,8 @@ const BookingManagement = () => {
 
       // Get admin email from localStorage
       const adminEmail = JSON.parse(localStorage.getItem('user'))?.email;
+      console.log('Admin email for booking:', adminEmail);
+      console.log('Booking data being sent:', bookingData);
       const response = await axios.post(`http://13.127.171.141:5000/api/create_browseroom?email=${adminEmail}`, bookingData);
       if (response.data) {
         toast.success('Room booked successfully and auto-confirmed!');
@@ -482,16 +485,15 @@ const BookingManagement = () => {
     });
   };
 
-  // Helper function to check if current admin owns a booking
+  // Helper function to check if a booking was created by an admin
   const isAdminBooking = (booking) => {
-    const adminEmail = (JSON.parse(localStorage.getItem('user'))?.email) || 'admin@example.com';
-    return booking.email === adminEmail;
+    return booking.creator_role === 'admin';
   };
 
 
   const BookingCard = ({ booking }) => (
     <div className={`p-2 sm:p-3 rounded-lg border-l-4 ${
-      booking.status.toLowerCase() === 'confirmed' ? 'border-green-500 bg-green-50' :
+      booking.status.toLowerCase() === 'confirmed' || isAdminBooking(booking) ? 'border-green-500 bg-green-50' :
       booking.status.toLowerCase() === 'pending' ? 'border-yellow-500 bg-yellow-50' :
       'border-red-500 bg-red-50'
     } mb-2`}> 
@@ -519,7 +521,8 @@ const BookingManagement = () => {
           </div>
         </div>
         <div className="flex flex-row sm:flex-col gap-1 sm:gap-2 items-end sm:items-start w-full sm:w-auto">
-          {booking.status.toLowerCase() === 'pending' && (
+          {/* Only show approval buttons for non-admin bookings */}
+          {!isAdminBooking(booking) && booking.status.toLowerCase() === 'pending' && (
             <>
               <button
                 onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
@@ -539,6 +542,7 @@ const BookingManagement = () => {
               </button>
             </>
           )}
+          {/* Show cancel button for confirmed bookings (both admin and non-admin) */}
           {booking.status.toLowerCase() === 'confirmed' && (
             <button
               onClick={() => handleUpdateStatus(booking.id, 'rejected')}
@@ -549,6 +553,7 @@ const BookingManagement = () => {
               {statusUpdatingId === booking.id ? 'Cancelling...' : 'Cancel'}
             </button>
           )}
+          {/* Delete button for admin's own bookings */}
           {isAdminBooking(booking) && (
             <button
               onClick={() => handleDeleteBooking(booking.id)}
@@ -599,7 +604,7 @@ const BookingManagement = () => {
                     <div
                       key={booking.id}
                       className={`text-xs p-1 rounded truncate ${
-                        booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800' :
+                        booking.status.toLowerCase() === 'confirmed' || isAdminBooking(booking) ? 'bg-green-200 text-green-800' :
                         booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800' :
                         'bg-red-200 text-red-800'
                       } cursor-pointer hover:opacity-80`}
@@ -701,7 +706,7 @@ const BookingManagement = () => {
                     <div
                       key={booking.id}
                       className={`absolute left-1 right-1 rounded shadow cursor-pointer px-2 py-1 overflow-hidden
-                        ${booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800 border-green-300' :
+                        ${booking.status.toLowerCase() === 'confirmed' || isAdminBooking(booking) ? 'bg-green-200 text-green-800 border-green-300' :
                           booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800 border-yellow-300' :
                           'bg-red-200 text-red-800 border-red-300'}
                       `}
@@ -790,7 +795,7 @@ const BookingManagement = () => {
                   <div
                     key={booking.id}
                     className={`absolute left-2 right-2 rounded shadow cursor-pointer px-3 py-2 overflow-hidden
-                      ${booking.status.toLowerCase() === 'confirmed' ? 'bg-green-200 text-green-800 border-green-300' :
+                      ${booking.status.toLowerCase() === 'confirmed' || isAdminBooking(booking) ? 'bg-green-200 text-green-800 border-green-300' :
                         booking.status.toLowerCase() === 'pending' ? 'bg-yellow-200 text-yellow-800 border-yellow-300' :
                         'bg-red-200 text-red-800 border-red-300'}
                     `}

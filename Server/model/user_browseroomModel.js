@@ -134,11 +134,13 @@ const FetchBrowseModel = (userEmail = null) => {
         b.room_id,
         COALESCE(r.name, 'Room not found') as booked_room_name,
         COALESCE(c.name, b.team_category) as category_name,
-        COALESCE(t.name, NULLIF(b.team_sub_category, '')) as team_name
+        COALESCE(t.name, NULLIF(b.team_sub_category, '')) as team_name,
+        COALESCE(u.role, 'user') as creator_role
       FROM booking b
       LEFT JOIN rooms r ON b.room_id = r.id
       LEFT JOIN categories c ON b.team_category = c.id::text
-      LEFT JOIN teams t ON b.team_sub_category = t.id::text`;
+      LEFT JOIN teams t ON b.team_sub_category = t.id::text
+      LEFT JOIN users u ON b.email = u.email`;
 
     const values = [];
     

@@ -1,7 +1,11 @@
 import React from 'react';
 import { User, Clock, MapPin, Phone, Mail, Target, Check, X, Trash2 } from 'lucide-react';
 
-const DetailedBookingCard = ({ booking, onUpdateStatus, onDeleteBooking, isAdminBooking }) => (
+const DetailedBookingCard = ({ booking, onUpdateStatus, onDeleteBooking, isAdminBooking }) => {
+  // Check if this booking was created by an admin
+  const wasCreatedByAdmin = booking.creator_role === 'admin';
+  
+  return (
   <div className={`p-4 rounded-lg border-l-4 ${
     booking.status.toLowerCase() === 'confirmed' ? 'border-green-500 bg-green-50' :
     booking.status.toLowerCase() === 'pending' ? 'border-yellow-500 bg-yellow-50' :
@@ -49,16 +53,27 @@ const DetailedBookingCard = ({ booking, onUpdateStatus, onDeleteBooking, isAdmin
           </div>
         )}
         <div className="mt-3 flex items-center justify-between">
-          <span className={`px-2 py-1 inline-flex text-xs sm:text-sm leading-5 font-semibold rounded-full ${
-            booking.status.toLowerCase() === 'confirmed' ? 'bg-green-100 text-green-800' :
-            booking.status.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            {booking.status}
-          </span>
+          {/* For admin bookings, always show as confirmed and hide status badge */}
+          {!wasCreatedByAdmin && (
+            <span className={`px-2 py-1 inline-flex text-xs sm:text-sm leading-5 font-semibold rounded-full ${
+              booking.status.toLowerCase() === 'confirmed' ? 'bg-green-100 text-green-800' :
+              booking.status.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {booking.status}
+            </span>
+          )}
+          
+          {/* For admin bookings, show "Auto-Confirmed" badge instead of status */}
+          {wasCreatedByAdmin && (
+            <span className="px-2 py-1 inline-flex text-xs sm:text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+              Auto-Confirmed
+            </span>
+          )}
           
           <div className="flex gap-2">
-            {onUpdateStatus && (
+            {/* Only show approval buttons for non-admin bookings */}
+            {onUpdateStatus && !wasCreatedByAdmin && (
               <>
                 {booking.status.toLowerCase() === 'pending' && (
                   <>
@@ -90,6 +105,17 @@ const DetailedBookingCard = ({ booking, onUpdateStatus, onDeleteBooking, isAdmin
               </>
             )}
             
+            {/* For admin bookings, only show cancel button if needed */}
+            {onUpdateStatus && wasCreatedByAdmin && booking.status.toLowerCase() === 'confirmed' && (
+              <button
+                onClick={() => onUpdateStatus(booking.id, 'rejected')}
+                className="flex items-center px-3 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 transition-colors"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Cancel
+              </button>
+            )}
+            
             {/* Delete Button - Only visible for admin's own bookings */}
             {onDeleteBooking && isAdminBooking && (
               <button
@@ -106,6 +132,7 @@ const DetailedBookingCard = ({ booking, onUpdateStatus, onDeleteBooking, isAdmin
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default DetailedBookingCard; 
