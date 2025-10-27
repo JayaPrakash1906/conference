@@ -61,6 +61,12 @@ const MyBooking = () => {
                 ? booking.team_category
                 : "Unknown Category");
 
+        // Determine display status based on creator role
+        let displayStatus = booking.status || 'pending';
+        if (booking.creator_role === 'admin') {
+          displayStatus = 'confirmed'; // Admin bookings always show as confirmed
+        }
+
         const transformedBooking = {
           id: booking.id,
           title: booking.meeting_name || 'Untitled Meeting',
@@ -69,7 +75,7 @@ const MyBooking = () => {
           time: formattedTime,
           rawStartTime: booking.start_time,
           rawEndTime: booking.end_time,
-          status: booking.status || 'pending',
+          status: displayStatus,
           updatedAt: booking.updated_at,
           rawDate: booking.date,
           notes: booking.meeting_purpose,
@@ -79,7 +85,8 @@ const MyBooking = () => {
           team: categoryDisplay,
           subTeam: booking.team_name || booking.team_sub_category || booking.subTeam || booking.team || '—',
           team_category: booking.team_category,
-          team_sub_category: booking.team_sub_category
+          team_sub_category: booking.team_sub_category,
+          creator_role: booking.creator_role || 'user'
         };
         // Debug: log booking data
         // console.log('Booking:', booking, 'Transformed:', transformedBooking);

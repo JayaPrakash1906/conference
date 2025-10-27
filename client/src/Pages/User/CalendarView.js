@@ -143,11 +143,18 @@ const CalendarView = () => {
         }
 
         const rawDateKey = (booking.date || '').toString().slice(0, 10);
+        
+        // Determine display status based on creator role
+        let displayStatus = booking.status || 'Pending';
+        if (booking.creator_role === 'admin') {
+          displayStatus = 'confirmed'; // Admin bookings always show as confirmed
+        }
+        
         return {
           id: booking.id,
           title: booking.meeting_name || 'Untitled Meeting',
           user: booking.name,
-          status: booking.status || 'Pending',
+          status: displayStatus,
           room: booking.booked_room_name,
           location: `${booking.location || 'Location not specified'}`,
           date: new Date(booking.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
@@ -161,7 +168,8 @@ const CalendarView = () => {
           team_sub_category: booking.team_sub_category,
           contactNumber: booking.contact_number,
           email: booking.email,
-          rawDate: rawDateKey
+          rawDate: rawDateKey,
+          creator_role: booking.creator_role || 'user'
         };
       });
 
@@ -487,7 +495,7 @@ const CalendarView = () => {
                   isCurrentMonth && isBookable ? 'cursor-pointer hover:bg-blue-50' : ''
                 }`}
                 onClick={() => {
-                  if (isCurrentMonth && isBookable && dayBookings.length === 0) {
+                  if (isCurrentMonth && isBookable) {
                     handleDateClick(day);
                   }
                 }}
